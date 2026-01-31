@@ -34,9 +34,9 @@ export const parseRange = (rangeStr, totalPages) => {
     } else {
       let page = parseInt(part);
       if (!isNaN(page)) {
-          if (page >= 1 && page <= totalPages) {
-              pages.add(page - 1);
-          }
+        if (page >= 1 && page <= totalPages) {
+          pages.add(page - 1);
+        }
       }
     }
   });
@@ -45,39 +45,35 @@ export const parseRange = (rangeStr, totalPages) => {
 };
 
 /**
- * Splits a PDF into two documents based on provided ranges.
+ * Splits a PDF into multiple documents based on provided ranges.
  * @param {ArrayBuffer} fileArrayBuffer - The loaded PDF file
- * @param {string} range1Str - Range string for first PDF
- * @param {string} range2Str - Range string for second PDF
- * @returns {Promise<{pdf1: Uint8Array, pdf2: Uint8Array}>}
+ * @param {string[]} ranges - Array of range strings
+ * @returns {Promise<Uint8Array[]>} - Array of PDF bytes
  */
-export const splitPdf = async (fileArrayBuffer, range1Str, range2Str) => {
+export const splitPdf = async (fileArrayBuffer, ranges) => {
   const originalPdf = await PDFDocument.load(fileArrayBuffer);
   const totalPages = originalPdf.getPageCount();
 
-  const pages1 = parseRange(range1Str, totalPages);
-  const pages2 = parseRange(range2Str, totalPages);
+  const results = [];
 
-  if (pages1.length === 0 && pages2.length === 0) {
-      throw new Error("Both ranges are empty or invalid.");
+  for (const rangeStr of ranges) {
+    const pages = parseRange(rangeStr, totalPages);
+
+    // Create new PDF for this range
+    const newPdf = await PDFDocument.create();
+    if (pages.length > 0) {
+      const copiedPages = await newPdf.copyPages(originalPdf, pages);
+      copiedPages.forEach(page => newPdf.addPage(page));
+    }
+
+    // Only save if it has pages or if we want to allow empty PDFs (usually no)
+    if (newPdf.getPageCount() > 0) {
+      const pdfBytes = await newPdf.save();
+      results.push(pdfBytes);
+    } else {
+      results.push(null); // Or handle empty ranges gracefully
+    }
   }
 
-  // Create PDF 1
-  const pdf1 = await PDFDocument.create();
-  if (pages1.length > 0) {
-    const copiedPages1 = await pdf1.copyPages(originalPdf, pages1);
-    copiedPages1.forEach(page => pdf1.addPage(page));
-  }
-
-  // Create PDF 2
-  const pdf2 = await PDFDocument.create();
-  if (pages2.length > 0) {
-    const copiedPages2 = await pdf2.copyPages(originalPdf, pages2);
-    copiedPages2.forEach(page => pdf2.addPage(page));
-  }
-
-  const pdf1Bytes = await pdf1.save();
-  const pdf2Bytes = await pdf2.save();
-
-  return { pdf1: pdf1Bytes, pdf2: pdf2Bytes };
+  return results;
 };

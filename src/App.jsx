@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Upload, FileText, Download, Scissors, X, AlertCircle } from 'lucide-react';
+import { Upload, FileText, Download, Scissors, X, AlertCircle, Plus, Trash2 } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import { splitPdf } from './utils/pdfHelpers';
 import './App.css';
@@ -7,11 +7,16 @@ import './App.css';
 function App() {
   const [file, setFile] = useState(null);
   const [fileBuffer, setFileBuffer] = useState(null);
-  const [range1, setRange1] = useState('');
-  const [range2, setRange2] = useState('');
+
+  // State for dynamic ranges
+  const [ranges, setRanges] = useState([
+    { id: '1', value: '' },
+    { id: '2', value: '' }
+  ]);
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
-  const [downloadUrls, setDownloadUrls] = useState({ part1: null, part2: null });
+  const [downloadBlobs, setDownloadBlobs] = useState([]); // Array of { blob, filename }
   const fileInputRef = useRef(null);
 
   const handleFileChange = async (e) => {
@@ -29,15 +34,13 @@ function App() {
     setError('');
     setFile(selectedFile);
 
-    // Read file as ArrayBuffer
     const reader = new FileReader();
     reader.onload = (event) => {
       setFileBuffer(event.target.result);
     };
     reader.readAsArrayBuffer(selectedFile);
 
-    // Reset previous state
-    setDownloadUrls({ part1: null, part2: null });
+    setDownloadBlobs([]);
   };
 
   const handleDragOver = (e) => {
@@ -51,25 +54,50 @@ function App() {
     processFile(droppedFile);
   };
 
+  // Range Management
+  const addRange = () => {
+    setRanges([...ranges, { id: Date.now().toString(), value: '' }]);
+  };
+
+  const removeRange = (id) => {
+    if (ranges.length <= 1) return; // Keep at least one
+    setRanges(ranges.filter(r => r.id !== id));
+  };
+
+  const updateRange = (id, newValue) => {
+    setRanges(ranges.map(r => r.id === id ? { ...r, value: newValue } : r));
+  };
+
   const handleSplit = async () => {
-    if (!fileBuffer || !range1 || !range2) {
-      setError('Please select a file and define both ranges.');
+    const rangeValues = ranges.map(r => r.value).filter(v => v.trim() !== '');
+
+    if (!fileBuffer || rangeValues.length === 0) {
+      setError('Please select a file and define at least one range.');
       return;
     }
 
     setIsProcessing(true);
     setError('');
+    setDownloadBlobs([]);
 
     try {
-      const { pdf1, pdf2 } = await splitPdf(fileBuffer, range1, range2);
+      const pdfBytesArray = await splitPdf(fileBuffer, rangeValues);
 
-      const blob1 = new Blob([pdf1], { type: 'application/pdf' });
-      const blob2 = new Blob([pdf2], { type: 'application/pdf' });
+      const newBlobs = pdfBytesArray.map((bytes, index) => {
+        if (!bytes) return null;
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        return {
+          blob,
+          part: index + 1
+        };
+      }).filter(Boolean);
 
-      setDownloadUrls({
-        part1: URL.createObjectURL(blob1),
-        part2: URL.createObjectURL(blob2)
-      });
+      setDownloadBlobs(newBlobs);
+
+      if (newBlobs.length === 0) {
+        setError('No valid pages were found in the specified ranges.');
+      }
+
     } catch (err) {
       console.error(err);
       setError(err.message || 'An error occurred while splitting the PDF.');
@@ -78,31 +106,26 @@ function App() {
     }
   };
 
-  const handleDownload = (blobUrl, suffix) => {
-    // We need the actual blob, but we only stored the URL.
-    // Let's refactor to store blobs or fetch the blob from the URL.
-    // Actually, simpler: just update `handleSplit` to store blobs or pass them directly.
-    // For now, let's fetch the blob from the URL since we have it.
-    if (!blobUrl) return;
+  const handleDownload = (blobObj) => {
+    if (!blobObj) return;
 
-    fetch(blobUrl)
-      .then(res => res.blob())
-      .then(blob => {
-        let filename = 'split-document.pdf';
-        if (file && file.name) {
-          const nameWithoutExt = file.name.replace(/\.pdf$/i, '');
-          filename = `${nameWithoutExt}-${suffix}.pdf`;
-        }
-        saveAs(blob, filename);
-      });
+    let filename = 'split-document.pdf';
+    if (file && file.name) {
+      const nameWithoutExt = file.name.replace(/\.pdf$/i, '');
+      filename = `${nameWithoutExt}-part${blobObj.part}.pdf`;
+    }
+
+    saveAs(blobObj.blob, filename);
   };
 
   const handleReset = () => {
     setFile(null);
     setFileBuffer(null);
-    setRange1('');
-    setRange2('');
-    setDownloadUrls({ part1: null, part2: null });
+    setRanges([
+      { id: '1', value: '' },
+      { id: '2', value: '' }
+    ]);
+    setDownloadBlobs([]);
     setError('');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -152,31 +175,37 @@ function App() {
               </div>
             )}
 
-            <div className="input-grid">
-              <div className="input-group">
-                <label>First Part Pages</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 1-5"
-                  value={range1}
-                  onChange={(e) => setRange1(e.target.value)}
-                />
+            <div className="ranges-container">
+              <div className="input-grid-dynamic">
+                {ranges.map((range, index) => (
+                  <div key={range.id} className="input-group dynamic">
+                    <label>Part {index + 1}</label>
+                    <div className="input-with-action">
+                      <input
+                        type="text"
+                        placeholder="e.g. 1-5"
+                        value={range.value}
+                        onChange={(e) => updateRange(range.id, e.target.value)}
+                      />
+                      {ranges.length > 1 && (
+                        <button className="icon-btn delete" onClick={() => removeRange(range.id)} title="Remove Range">
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="input-group">
-                <label>Second Part Pages</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 6-end"
-                  value={range2}
-                  onChange={(e) => setRange2(e.target.value)}
-                />
-              </div>
+
+              <button className="add-range-btn" onClick={addRange}>
+                <Plus size={16} /> Add Another Range
+              </button>
             </div>
 
             <button
               className="action-btn"
               onClick={handleSplit}
-              disabled={isProcessing || !range1 || !range2}
+              disabled={isProcessing || ranges.every(r => !r.value)}
             >
               {isProcessing ? 'Processing...' : (
                 <>
@@ -185,14 +214,13 @@ function App() {
               )}
             </button>
 
-            {(downloadUrls.part1 || downloadUrls.part2) && (
+            {downloadBlobs.length > 0 && (
               <div className="download-section">
-                <button className="download-btn" onClick={() => handleDownload(downloadUrls.part1, 'part1')}>
-                  <Download size={18} /> Part 1
-                </button>
-                <button className="download-btn" onClick={() => handleDownload(downloadUrls.part2, 'part2')}>
-                  <Download size={18} /> Part 2
-                </button>
+                {downloadBlobs.map((blobObj) => (
+                  <button key={blobObj.part} className="download-btn" onClick={() => handleDownload(blobObj)}>
+                    <Download size={18} /> Part {blobObj.part}
+                  </button>
+                ))}
               </div>
             )}
           </div>
