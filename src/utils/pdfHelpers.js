@@ -77,3 +77,24 @@ export const splitPdf = async (fileArrayBuffer, ranges) => {
 
   return results;
 };
+
+/**
+ * Merges multiple PDF files into a single PDF document.
+ * @param {ArrayBuffer[]} fileBuffers - Array of PDF file ArrayBuffers
+ * @returns {Promise<Uint8Array>} - The merged PDF bytes
+ */
+export const mergePdfs = async (fileBuffers) => {
+  if (!fileBuffers || fileBuffers.length < 2) {
+    throw new Error('Please provide at least 2 PDF files to merge.');
+  }
+
+  const mergedPdf = await PDFDocument.create();
+
+  for (const buffer of fileBuffers) {
+    const pdf = await PDFDocument.load(buffer);
+    const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+    copiedPages.forEach(page => mergedPdf.addPage(page));
+  }
+
+  return mergedPdf.save();
+};
