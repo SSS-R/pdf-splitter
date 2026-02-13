@@ -51,7 +51,7 @@ export const parseRange = (rangeStr, totalPages) => {
  * @returns {Promise<Uint8Array[]>} - Array of PDF bytes
  */
 export const splitPdf = async (fileArrayBuffer, ranges) => {
-  const originalPdf = await PDFDocument.load(fileArrayBuffer);
+  const originalPdf = await PDFDocument.load(fileArrayBuffer, { ignoreEncryption: true });
   const totalPages = originalPdf.getPageCount();
 
   const results = [];
@@ -91,7 +91,7 @@ export const mergePdfs = async (fileBuffers) => {
   const mergedPdf = await PDFDocument.create();
 
   for (const buffer of fileBuffers) {
-    const pdf = await PDFDocument.load(buffer);
+    const pdf = await PDFDocument.load(buffer, { ignoreEncryption: true });
     const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
     copiedPages.forEach(page => mergedPdf.addPage(page));
   }
