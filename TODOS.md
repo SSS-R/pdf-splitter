@@ -1,12 +1,20 @@
 # TODOS
 
-## Prerender routes to static HTML (Phase 0.3, remaining half)
-- **What:** Generate a real HTML file per route at build time (`vite-react-ssg`, or React Router's framework-mode prerender) instead of one empty shell plus a 404 fallback.
-- **Why:** Every tool now has its own URL, but a crawler that doesn't run JavaScript still sees an empty `<div id="root">`. Bing, DuckDuckGo, AI crawlers and link-preview bots frequently don't execute JS, so the per-tool SEO copy is currently invisible to them. This is the load-bearing half of the SEO plan.
-- **Pros:** Real content in the HTML for every tool page; instant first paint; link previews work; the `dist/404.html` SPA fallback becomes unnecessary.
-- **Cons:** Build-config migration; components must not touch `window`/`localStorage` during render (the theme script in `index.html` and `usePro`'s `getServerSnapshot` already account for this).
-- **Context:** Routes live in `src/App.jsx` (lazy-loaded). `vite.config.js` currently copies `index.html` to `404.html` as a stopgap for deep links. Per-tool copy for each landing page still needs writing (~300-500 words each, ROADMAP Phase 0.5).
-- **Depends on / blocked by:** Nothing. This is the next build step.
+## Write 300–500 words of real copy per tool page
+- **What:** Genuine explanatory copy on each tool route — how it works, why client-side matters, honest limitations. Currently each tool page prerenders ~350 *characters*.
+- **Why:** Prerendering now puts whatever is on the page into the HTML, so this is the step that actually converts into rankings. Thin pages don't rank no matter how clean the markup is. Long-tail targets: "split pdf offline", "pdf splitter no upload", "merge pdf without uploading".
+- **Pros:** The one remaining lever on organic traffic, which gates the whole Phase 1 paywall decision (~500 visitors/month).
+- **Cons:** Writing time, not engineering time. Must stay honest — no keyword-stuffed filler, which would undercut the trust the whole pitch rests on.
+- **Context:** Copy belongs in the route components (`src/routes/*.jsx`); it gets prerendered automatically. Per-route titles/descriptions already live in `src/lib/seo.js`.
+- **Depends on / blocked by:** Nothing.
+
+## Make an OG preview image
+- **What:** A 1200×630 `og-default.png` in `public/`, then switch `twitter:card` back to `summary_large_image` in `scripts/prerender.js`.
+- **Why:** Link previews on Hacker News, Reddit, Slack and X currently render as a small text-only card. The Show HN post is the single highest-traffic moment planned, and a large-image card is meaningfully more clickable.
+- **Pros:** Cheap, one-off, directly improves the Week 0 launch.
+- **Cons:** None beyond making the image.
+- **Context:** `headFor()` in `scripts/prerender.js` deliberately emits `summary` today, because a `summary_large_image` card pointing at a missing image renders broken — worse than no image. The design system's palette and pixel-notch style is the obvious visual.
+- **Depends on / blocked by:** Nothing. Do this **before** posting anywhere.
 
 ## Move compression into a Web Worker
 - **What:** Run `src/lib/pdf/compress.js` in a Web Worker with OffscreenCanvas, with a main-thread fallback for Safari < 16.4.

@@ -7,6 +7,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#FAFAF7" media="(prefers-color-scheme: light)" />
   <meta name="theme-color" content="#12120F" media="(prefers-color-scheme: dark)" />
+  <!--
+    Everything between the seo markers is replaced per route at build time by
+    scripts/prerender.js (source of truth: src/lib/seo.js). The tags below are
+    the home-page defaults and are what `vite dev` serves.
+  -->
+  <!--seo-start-->
   <title>PDF Tools — Split, Merge & Compress PDFs Without Uploading</title>
   <meta name="description"
     content="Split, merge, compress and reorder PDFs entirely in your browser. Your files never leave your device — no uploads, no accounts. Verify it in devtools." />
@@ -15,6 +21,7 @@
     content="Client-side PDF toolkit. Split, merge, compress, reorder and convert images to PDF with nothing uploaded to a server." />
   <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary_large_image" />
+  <!--seo-end-->
 
   <!--
     Resolve the theme before first paint. Without this the page renders light,

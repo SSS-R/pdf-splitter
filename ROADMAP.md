@@ -56,7 +56,7 @@ Nothing here requires writing code.
 - [x] Code-quality fixes: `splitPdf` returns `{rangeStr, bytes|null, warnings}` and the UI names ranges that produced nothing; `parseRange` returns warnings; encrypted PDFs rejected with a clear message (`ignoreEncryption` removed); `%PDF-` magic-byte fallback; `FREE_MERGE_LIMIT` named constant.
 - [x] **Design system implemented** from the approved "PDF Tools prototype" (Claude Design): Swiss 12-col grid, pixel-notched corners, `steps()` motion, bitmap icons, `#FAFAF7`/`#111111`/`#E62E2E` — **plus a full dark theme** (`#12120F`/`#F2F2EA`/`#FF4B4B`) with OS-follow, explicit toggle, persistence, and a no-flash inline script.
 - [x] `dist/404.html` SPA fallback so deep links boot instead of dead-ending on a static host.
-- [ ] **Prerendering still to do** — routes exist but ship an empty shell to non-JS crawlers. This is the remaining half of the SEO plan (see TODOS.md).
+- [x] **Prerendering ✅ DONE 2026-07-27** — `scripts/prerender.js` renders every route to its own HTML file via React 19's `prerenderToNodeStream` (chosen over `renderToString` because the tool routes sit behind `React.lazy`, which `renderToString` would emit as the "Loading tool…" fallback). Build is now `vite build` → `vite build --ssr` → prerender. Client still mounts with `createRoot`, not `hydrateRoot` — hydration needs an SSR module manifest to preload route chunks, else it suspends and mismatches; the crawler benefit doesn't depend on it. Reasoning is documented in `src/main.jsx`.
 
 Target structure:
 ```
@@ -71,16 +71,19 @@ functions/
 └── api/license.js   (Phase 1 — Cloudflare Function)
 ```
 
-### 0.4 Three new tools (parallelizable after 0.3)
-- [ ] **Reorder / rotate / delete pages** — thumbnail grid, drag to reorder, per-page rotate/delete. pdf-lib only.
-- [ ] **Images → PDF** — JPEG/PNG mix; `createImageBitmap` with EXIF orientation; downscale huge photos before embedding (12MP phone photo must not produce a 40MB page).
-- [ ] **Compress** — image-only recompression: extract embedded images → canvas downscale/re-encode → re-embed. Runs in a **Web Worker with OffscreenCanvas** (Safari <16.4: main-thread fallback + progress UI). **Never rasterize pages** (text must stay selectable). Honest UX: v1 doesn't touch CCITT/JBIG2/JPX scans — say "little to compress here," never pretend.
-- [ ] Every tool: release ArrayBuffers after processing; unit tests per lib file; one Playwright happy path each.
+### 0.4 Three new tools ✅ DONE 2026-07-19 (shipped in the 0.3 refactor)
+- [x] **Reorder / rotate / delete pages** — page grid, move/rotate/delete, `applyPagePlan` in `src/lib/pdf/reorder.js`.
+- [x] **Images → PDF** — JPEG/PNG mix, EXIF-upright via `createImageBitmap`, downscaled before embedding so a 12MP photo doesn't produce a 40MB page (`computeFitSize`).
+- [x] **Compress** — image-only recompression via canvas; **never rasterises pages**, so text stays selectable. Says "little to compress here" on CCITT/JBIG2/JPX scans instead of faking a result.
+- [x] Unit tests per lib file (38 total).
+- [ ] Compress still runs on the **main thread** — Web Worker + OffscreenCanvas deferred (see TODOS.md).
+- [ ] One Playwright happy path per tool — deferred (see TODOS.md).
 
 ### 0.5 SEO + content (the actual ranking lever)
-- [ ] 300–500 words of genuinely useful copy per tool page (how it works, why client-side matters, honest limitations). Long-tail targets: "split pdf offline", "pdf splitter no upload", "merge pdf without uploading".
-- [ ] Meta/OG per route, sitemap.xml, robots.txt.
-- [ ] `/privacy` page documenting **every network request the site ever makes** (this list is the marketing).
+- [x] **Meta/OG per route, sitemap.xml, robots.txt ✅ DONE 2026-07-27** — all generated from `src/lib/seo.js` at build time, so metadata and the sitemap cannot drift from the route table. Canonicals and sitemap entries use the trailing-slash form (`/split/`) that matches the on-disk directory index, rather than relying on host-specific redirects from `/split`.
+- [x] `/privacy` page documenting every network request the site makes.
+- [ ] **300–500 words of real copy per tool page** — the tool pages currently prerender ~350 characters, which is thin for ranking. This is now the main remaining SEO lever. Long-tail targets: "split pdf offline", "pdf splitter no upload", "merge pdf without uploading".
+- [ ] **OG preview image** (`og-default.png`) — cards are `twitter:card=summary` until one exists, because a `summary_large_image` card with no image renders broken. Worth having *before* the Show HN post.
 - [ ] Directory listings: AlternativeTo, PrivacyGuides-adjacent lists, free-software directories. The Show HN post is backlink #1.
 - [ ] **No analytics beacon on tool routes where files are open** — beacon on landing/pricing only.
 
