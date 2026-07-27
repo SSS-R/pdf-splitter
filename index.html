@@ -5,13 +5,33 @@
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PDF Tools — Split & Merge PDFs Online, Free & Private</title>
+  <meta name="theme-color" content="#FAFAF7" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#12120F" media="(prefers-color-scheme: dark)" />
+  <title>PDF Tools — Split, Merge & Compress PDFs Without Uploading</title>
   <meta name="description"
-    content="Split and merge your PDF documents instantly in your browser. 100% free, no sign-ups, no uploads — your files never leave your device." />
-  <meta property="og:title" content="PDF Tools — Split & Merge PDFs Online" />
+    content="Split, merge, compress and reorder PDFs entirely in your browser. Your files never leave your device — no uploads, no accounts. Verify it in devtools." />
+  <meta property="og:title" content="PDF Tools — Your files never leave your device" />
   <meta property="og:description"
-    content="Free client-side PDF splitter and merger. No uploads, no servers — everything stays on your device." />
+    content="Client-side PDF toolkit. Split, merge, compress, reorder and convert images to PDF with nothing uploaded to a server." />
   <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!--
+    Resolve the theme before first paint. Without this the page renders light,
+    then snaps to dark a frame later - a flash of the wrong colour scheme on
+    every single load for dark-mode users.
+  -->
+  <script>
+    (function () {
+      try {
+        var stored = localStorage.getItem('pdftools-theme');
+        var theme = (stored === 'light' || stored === 'dark')
+          ? stored
+          : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) { /* storage blocked - CSS media query still handles it */ }
+    })();
+  </script>
 </head>
 
 <body>
