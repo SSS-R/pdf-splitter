@@ -23,13 +23,21 @@ export const splitPdf = async (fileArrayBuffer, ranges) => {
   for (const rangeStr of ranges) {
     const { pages, warnings } = parseRange(rangeStr, totalPages);
 
-    if (pages.length === 0) {
+    // Defence in depth. parseRange owns the bounds, but when a bug there let an
+    // out-of-range index through, pdf-lib failed deep inside copyPages with
+    // "Cannot read properties of undefined (reading 'node')" -- an internal
+    // error that surfaced verbatim to the user. Filtering here means the worst
+    // case is a range reported as empty, never a crash wearing a stranger's
+    // error message.
+    const safePages = pages.filter((i) => Number.isInteger(i) && i >= 0 && i < totalPages);
+
+    if (safePages.length === 0) {
       results.push({ rangeStr, bytes: null, pageCount: 0, warnings });
       continue;
     }
 
     const newPdf = await PDFDocument.create();
-    const copiedPages = await newPdf.copyPages(originalPdf, pages);
+    const copiedPages = await newPdf.copyPages(originalPdf, safePages);
     copiedPages.forEach((page) => newPdf.addPage(page));
 
     results.push({

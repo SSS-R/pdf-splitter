@@ -27,8 +27,8 @@ export default defineConfig([
     },
   },
   {
-    // Build tooling runs in Node, not the browser.
-    files: ['scripts/**/*.js', 'vite.config.js', 'eslint.config.js'],
+    // Build tooling and E2E tests run in Node, not the browser.
+    files: ['scripts/**/*.js', 'e2e/**/*.js', 'vite.config.js', 'eslint.config.js', 'playwright.config.js'],
     languageOptions: {
       globals: globals.node,
     },

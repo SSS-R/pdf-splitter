@@ -46,7 +46,7 @@ Nothing here requires writing code.
   - `mergePdfs`: <2 throws, page counts sum, 3+ documents
   - `applyPagePlan`: reorder, delete-by-omission, rotation, empty-plan guard
   - `document` guards + `computeFitSize`
-- [ ] Playwright E2E smoke (installed, suite not yet written — see TODOS.md).
+- [x] **Playwright E2E ✅ DONE 2026-07-27** — 20 tests in `e2e/`, run with `npm run test:e2e`. Runs against `vite preview` (the built output), never the dev server, because prerendering only exists in a production build. Covers: every route serving real content over raw HTTP with **no JavaScript** (the check that would have caught the blank-tool-page bug), word-count floors, FAQ JSON-LD validity, sitemap/robots, a live `og:image`, upload→split→download with page counts verified by re-opening the PDF, the merge limit, Pro activation across routes, and an assertion that processing a file issues **zero outbound requests**. Fixtures are generated (PDFs via pdf-lib, PNGs via a hand-rolled encoder) rather than committed as binaries.
 
 ### 0.3 The refactor ✅ MOSTLY DONE 2026-07-19
 - [x] react-router v7 wired; every tool owns a real URL: `/`, `/split`, `/merge`, `/compress`, `/reorder`, `/images-to-pdf`, `/pricing`, `/privacy`.
