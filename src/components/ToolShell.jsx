@@ -1,8 +1,15 @@
 import { Link } from 'react-router-dom';
 import PixelIcon from './PixelIcon.jsx';
+import ToolCopy from './ToolCopy.jsx';
 
-/** Two-column tool page: Swiss sidebar on the left, the working area on the right. */
-export function ToolShell({ eyebrow, title, blurb, children }) {
+/**
+ * Two-column tool page: Swiss sidebar on the left, the working area on the right.
+ *
+ * `path` drives the long-form copy rendered beneath the tool. It is what makes
+ * these pages rankable -- a page containing only a dropzone gives a crawler
+ * nothing to index.
+ */
+export function ToolShell({ eyebrow, title, blurb, path, children }) {
   return (
     <div className="container" style={{ padding: '56px var(--gutter)' }}>
       <div className="grid12">
@@ -29,7 +36,10 @@ export function ToolShell({ eyebrow, title, blurb, children }) {
             ← All tools
           </Link>
         </div>
-        <div style={{ gridColumn: '5 / 13', minWidth: 0 }}>{children}</div>
+        <div style={{ gridColumn: '5 / 13', minWidth: 0 }}>
+          {children}
+          {path && <ToolCopy path={path} />}
+        </div>
       </div>
     </div>
   );

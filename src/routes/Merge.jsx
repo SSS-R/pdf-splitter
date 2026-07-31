@@ -83,7 +83,7 @@ export default function Merge() {
   const totalPages = items.reduce((sum, i) => sum + i.pages, 0);
 
   return (
-    <ToolShell eyebrow={tool.eyebrow} title="Merge PDF" blurb={tool.blurb}>
+    <ToolShell eyebrow={tool.eyebrow} title="Merge PDF" blurb={tool.blurb} path={tool.path}>
       {!atLimit && (
         <FileDropzone
           multiple

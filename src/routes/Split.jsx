@@ -48,7 +48,7 @@ export default function Split() {
   const empty = results?.filter((r) => !r.bytes) ?? [];
 
   return (
-    <ToolShell eyebrow={tool.eyebrow} title="Split PDF" blurb={tool.blurb}>
+    <ToolShell eyebrow={tool.eyebrow} title="Split PDF" blurb={tool.blurb} path={tool.path}>
       {!pdf.file ? (
         <FileDropzone
           onFiles={([f]) => pdf.load(f)}

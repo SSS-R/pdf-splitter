@@ -39,7 +39,7 @@ export default function Compress() {
   };
 
   return (
-    <ToolShell eyebrow={tool.eyebrow} title="Compress" blurb={tool.blurb}>
+    <ToolShell eyebrow={tool.eyebrow} title="Compress" blurb={tool.blurb} path={tool.path}>
       {!pdf.file ? (
         <FileDropzone onFiles={([f]) => pdf.load(f)} hint="or click to browse — analysed on your device" />
       ) : (
