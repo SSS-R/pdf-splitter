@@ -1,0 +1,138 @@
+/* ===========================================================================
+   Design tokens — "modern pixelated-Swiss"
+   ---------------------------------------------------------------------------
+   The design is built on paper-vs-ink: a warm off-white sheet, near-black ink,
+   one Swiss red accent, and 2px ink rules everywhere. Dark mode inverts the
+   sheet rather than recolouring the system: paper becomes warm near-black, ink
+   becomes warm near-white, and the "inverted band" (the black Pro strip) flips
+   to light so the page keeps its contrast rhythm in both themes.
+
+   Theme resolution order:
+     1. :root                          -> light (default)
+     2. prefers-color-scheme: dark     -> dark, for users with no explicit pick
+     3. [data-theme="light|dark"]      -> explicit pick, wins over both
+   =========================================================================== */
+
+:root {
+  /* surface + text */
+  --bg: #fafaf7;
+  --surface: #fafaf7;
+  --surface-hover: #f0f0ea;
+  --ink: #111111;
+  --muted: #555555;
+  --muted-strong: #333333;
+
+  /* accent */
+  --accent: #e62e2e;
+  --accent-ink: #ffffff;
+
+  /* rules */
+  --rule: #111111;
+  --rule-width: 2px;
+  --hairline: #dddddd;
+
+  /* inverted band (Pro strip, table headers, result headers) */
+  --band-bg: #111111;
+  --band-ink: #fafaf7;
+  --band-muted: #cfcfca;
+  --band-dim: #8f8f8a;
+  --band-hairline: #444444;
+
+  /* states */
+  --danger: #e62e2e;
+  --danger-bg: #fbeaea;
+  --danger-ink: #333333;
+
+  /* the offset "pixel shadow" behind display type */
+  --pixel-shadow: rgba(0, 0, 0, 0.1);
+
+  /* geometry + motion */
+  --step: 5px;             /* pixel-stepped corner size, buttons */
+  --step-lg: 6px;          /* pixel-stepped corner size, cards */
+  --container: 1180px;
+  --gutter: 32px;
+  --tick: 100ms;           /* everything moves in 2 discrete steps */
+
+  --font-sans: Helvetica, Inter, Arial, sans-serif;
+  --font-mono: 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12120f;
+    --surface: #12120f;
+    --surface-hover: #1d1d18;
+    --ink: #f2f2ea;
+    --muted: #9c9c93;
+    --muted-strong: #c4c4ba;
+
+    --accent: #ff4b4b;
+    --accent-ink: #12120f;
+
+    --rule: #f2f2ea;
+    --hairline: #35352f;
+
+    --band-bg: #f2f2ea;
+    --band-ink: #12120f;
+    --band-muted: #55554e;
+    --band-dim: #6e6e66;
+    --band-hairline: #c9c9c0;
+
+    --danger: #ff4b4b;
+    --danger-bg: #2b1513;
+    --danger-ink: #e4d5d3;
+
+    --pixel-shadow: rgba(255, 255, 255, 0.12);
+
+    color-scheme: dark;
+  }
+}
+
+/* Explicit choice beats the OS in both directions. */
+:root[data-theme='light'] {
+  --bg: #fafaf7;
+  --surface: #fafaf7;
+  --surface-hover: #f0f0ea;
+  --ink: #111111;
+  --muted: #555555;
+  --muted-strong: #333333;
+  --accent: #e62e2e;
+  --accent-ink: #ffffff;
+  --rule: #111111;
+  --hairline: #dddddd;
+  --band-bg: #111111;
+  --band-ink: #fafaf7;
+  --band-muted: #cfcfca;
+  --band-dim: #8f8f8a;
+  --band-hairline: #444444;
+  --danger: #e62e2e;
+  --danger-bg: #fbeaea;
+  --danger-ink: #333333;
+  --pixel-shadow: rgba(0, 0, 0, 0.1);
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #12120f;
+  --surface: #12120f;
+  --surface-hover: #1d1d18;
+  --ink: #f2f2ea;
+  --muted: #9c9c93;
+  --muted-strong: #c4c4ba;
+  --accent: #ff4b4b;
+  --accent-ink: #12120f;
+  --rule: #f2f2ea;
+  --hairline: #35352f;
+  --band-bg: #f2f2ea;
+  --band-ink: #12120f;
+  --band-muted: #55554e;
+  --band-dim: #6e6e66;
+  --band-hairline: #c9c9c0;
+  --danger: #ff4b4b;
+  --danger-bg: #2b1513;
+  --danger-ink: #e4d5d3;
+  --pixel-shadow: rgba(255, 255, 255, 0.12);
+  color-scheme: dark;
+}
