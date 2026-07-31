@@ -41,10 +41,19 @@ const canonicalFor = (route) => {
   return origin + (route === '/' ? base : `${base}${route.replace(/^\//, '')}/`);
 };
 
+/**
+ * The social card upgrades itself. A `summary_large_image` card pointing at a
+ * missing image renders as a broken preview -- worse than no image -- so the
+ * card type follows whether the file actually exists. Generate it with
+ * scripts/og-image.html and drop it in public/.
+ */
+const OG_IMAGE = 'og-default.png';
+const hasOgImage = existsSync(join(projectRoot, 'public', OG_IMAGE));
+
 const headFor = (route) => {
   const meta = ROUTE_META[route];
   const canonical = canonicalFor(route);
-  return [
+  const tags = [
     `<title>${escapeHtml(meta.title)}</title>`,
     `<meta name="description" content="${escapeHtml(meta.description)}" />`,
     `<link rel="canonical" href="${canonical}" />`,
@@ -53,11 +62,20 @@ const headFor = (route) => {
     `<meta property="og:url" content="${canonical}" />`,
     `<meta property="og:site_name" content="PDF Tools" />`,
     `<meta property="og:type" content="website" />`,
-    // Deliberately "summary", not "summary_large_image": there is no OG image
-    // yet, and a large-image card with no image renders as a broken preview.
-    // Switch to summary_large_image when og-default.png ships (TODOS.md).
-    `<meta name="twitter:card" content="summary" />`,
-  ].join('\n  ');
+  ];
+  if (hasOgImage) {
+    const src = `${SITE_URL.replace(/\/+$/, '')}${BASE}${OG_IMAGE}`;
+    tags.push(
+      `<meta property="og:image" content="${src}" />`,
+      `<meta property="og:image:width" content="1200" />`,
+      `<meta property="og:image:height" content="630" />`,
+      `<meta name="twitter:image" content="${src}" />`,
+      `<meta name="twitter:card" content="summary_large_image" />`,
+    );
+  } else {
+    tags.push(`<meta name="twitter:card" content="summary" />`);
+  }
+  return tags.join('\n  ');
 };
 
 const buildSitemap = () => {

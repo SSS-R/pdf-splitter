@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>OG image generator — PDF Tools</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 32px;
+      background: #12120f;
+      color: #f2f2ea;
+      font-family: Helvetica, Arial, sans-serif;
+    }
+
+    h1 {
+      font-size: 18px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin: 0 0 6px;
+    }
+
+    p {
+      margin: 0 0 20px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #a0a09a;
+      max-width: 68ch;
+    }
+
+    canvas {
+      max-width: 100%;
+      height: auto;
+      border: 2px solid #f2f2ea;
+      display: block;
+      margin-bottom: 20px;
+    }
+
+    button {
+      background: #e62e2e;
+      color: #fafaf7;
+      border: 0;
+      padding: 14px 26px;
+      font: 900 14px/1 Helvetica, Arial, sans-serif;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    code {
+      background: #26261f;
+      padding: 2px 6px;
+      color: #f2f2ea;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Open Graph image generator</h1>
+  <p>
+    Renders the 1200&times;630 social preview card at full resolution, then snaps every pixel to the
+    three brand colours. That quantisation is deliberate: it removes font antialiasing, which both
+    matches the site's hard-edged look and cuts the PNG from ~68&nbsp;kB to ~34&nbsp;kB.
+    Click below, then save the file as <code>public/og-default.png</code>.
+    The build detects it automatically and upgrades the card to
+    <code>summary_large_image</code>.
+  </p>
+
+  <canvas id="og" width="1200" height="630"></canvas>
+  <button id="dl" type="button">Download og-default.png</button>
+
+  <script>
+    const W = 1200, H = 630, NOTCH = 26;
+    const CREAM = [250, 250, 247], INK = [17, 17, 17], RED = [230, 46, 46];
+    const rgb = (a) => 'rgb(' + a.join(',') + ')';
+
+    const canvas = document.getElementById('og');
+    const x = canvas.getContext('2d');
+
+    // Ink border, then a notched cream card -- the signature shape of the design system.
+    x.fillStyle = rgb(INK);
+    x.fillRect(0, 0, W, H);
+    x.fillStyle = rgb(CREAM);
+    const P = 18, l = P, t = P, r = W - P, b = H - P;
+    x.beginPath();
+    x.moveTo(l + NOTCH, t); x.lineTo(r - NOTCH, t); x.lineTo(r, t + NOTCH);
+    x.lineTo(r, b - NOTCH); x.lineTo(r - NOTCH, b); x.lineTo(l + NOTCH, b);
+    x.lineTo(l, b - NOTCH); x.lineTo(l, t + NOTCH);
+    x.closePath();
+    x.fill();
+
+    x.fillStyle = rgb(RED);
+    x.fillRect(72, 96, 96, 12);
+
+    x.fillStyle = rgb(INK);
+    x.textBaseline = 'top';
+    x.font = '900 92px Helvetica, Arial, sans-serif';
+    ['YOUR FILES', 'NEVER LEAVE', 'YOUR DEVICE.'].forEach((line, i) => {
+      x.fillText(line, 72, 148 + i * 96);
+    });
+
+    x.font = '700 27px Helvetica, Arial, sans-serif';
+    x.fillText('SPLIT / MERGE / COMPRESS / REORDER / IMAGES TO PDF', 72, 452);
+
+    x.fillRect(72, 508, W - 144, 3);
+    x.font = '900 26px Helvetica, Arial, sans-serif';
+    x.fillText('PDF TOOLS', 72, 530);
+
+    x.fillStyle = rgb(RED);
+    x.font = '700 26px Helvetica, Arial, sans-serif';
+    const tag = 'NO UPLOADS / NO ACCOUNTS';
+    x.fillText(tag, W - 72 - x.measureText(tag).width, 530);
+
+    // Snap to the brand palette: kills antialiasing, shrinks the PNG by half.
+    const palette = [CREAM, INK, RED];
+    const image = x.getImageData(0, 0, W, H);
+    const d = image.data;
+    for (let i = 0; i < d.length; i += 4) {
+      let best = 0, bestDist = Infinity;
+      for (let p = 0; p < palette.length; p++) {
+        const dr = d[i] - palette[p][0], dg = d[i + 1] - palette[p][1], db = d[i + 2] - palette[p][2];
+        const dist = dr * dr + dg * dg + db * db;
+        if (dist < bestDist) { bestDist = dist; best = p; }
+      }
+      d[i] = palette[best][0]; d[i + 1] = palette[best][1]; d[i + 2] = palette[best][2]; d[i + 3] = 255;
+    }
+    x.putImageData(image, 0, 0);
+
+    document.getElementById('dl').addEventListener('click', () => {
+      canvas.toBlob((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'og-default.png';
+        a.click();
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+    });
+  </script>
+</body>
+
+</html>

@@ -8,12 +8,12 @@
 - **Context:** Copy belongs in the route components (`src/routes/*.jsx`); it gets prerendered automatically. Per-route titles/descriptions already live in `src/lib/seo.js`.
 - **Depends on / blocked by:** Nothing.
 
-## Make an OG preview image
-- **What:** A 1200×630 `og-default.png` in `public/`, then switch `twitter:card` back to `summary_large_image` in `scripts/prerender.js`.
-- **Why:** Link previews on Hacker News, Reddit, Slack and X currently render as a small text-only card. The Show HN post is the single highest-traffic moment planned, and a large-image card is meaningfully more clickable.
-- **Pros:** Cheap, one-off, directly improves the Week 0 launch.
-- **Cons:** None beyond making the image.
-- **Context:** `headFor()` in `scripts/prerender.js` deliberately emits `summary` today, because a `summary_large_image` card pointing at a missing image renders broken — worse than no image. The design system's palette and pixel-notch style is the obvious visual.
+## Save the OG preview image (one click — generator is built)
+- **What:** Open `scripts/og-image.html` in a browser, click "Download og-default.png", and save it to `public/og-default.png`. Nothing else — the build detects the file and upgrades the card automatically.
+- **Why:** Link previews on Hacker News, Reddit, Slack and X currently render as a small text-only card. The Show HN post is the highest-traffic moment planned, and a large-image card is meaningfully more clickable.
+- **Pros:** One click. The generator is committed, so the image can be regenerated whenever branding changes rather than being a mystery binary in the repo.
+- **Cons:** Requires the manual click — Node has no canvas, and adding a headless browser or `sharp` purely to render one image isn't worth a dependency on a project that just removed six.
+- **Context:** `headFor()` in `scripts/prerender.js` checks whether `public/og-default.png` exists: present → `og:image` + `summary_large_image`; absent → plain `summary`. A large-image card pointing at a missing file renders broken, which is worse than no image, so the card type follows reality. The generator quantises to the three brand colours, which removes font antialiasing and halves the PNG (~68 kB → ~34 kB).
 - **Depends on / blocked by:** Nothing. Do this **before** posting anywhere.
 
 ## Move compression into a Web Worker
@@ -37,5 +37,5 @@
 - **Why:** ROADMAP Phase 0.2 calls for Playwright from Phase 0. Vitest covers the PDF logic (38 tests) but nothing currently proves the real pages work in a browser across a refactor.
 - **Pros:** Catches wiring regressions the unit tests structurally cannot; required before the payment flow ships in Phase 1.
 - **Cons:** Slower CI; file-upload tests need fixture PDFs committed to the repo.
-- **Context:** `playwright` is already installed as a dev dependency. Test plan with the exact flows to cover lives at `~/.gstack/projects/pdfsplitter/Rafi-main-eng-review-test-plan-20260718-212900.md`.
+- **Context:** Playwright is **not** installed (an earlier note here claimed it was — it isn't; `npm i -D @playwright/test` plus `npx playwright install` is step one). Test plan with the exact flows to cover lives at `~/.gstack/projects/pdfsplitter/Rafi-main-eng-review-test-plan-20260718-212900.md`. A headless browser would also let `scripts/og-image.html` be rendered in CI instead of by hand.
 - **Depends on / blocked by:** Nothing.
