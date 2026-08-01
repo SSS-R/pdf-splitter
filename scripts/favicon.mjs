@@ -50,27 +50,31 @@ const PAPER = [250, 250, 247];
 /* ------------------------------------------------------------------ SVG -- */
 
 /**
- * The viewBox is 16 units with 2-unit cells, not 9 units with 1-unit cells.
+ * One cell per unit, no margin: the viewBox *is* the glyph.
  *
- * That is the whole fix for the stair-stepping. Favicons are drawn at 16 and 32
- * device pixels; 16/9 is 1.78, so each cell landed on a fraction of a pixel and
- * `crispEdges` resolved neighbouring cells to different widths -- one bar 2px,
- * the next 1px, which looked like a crack down the mark. 7 cells x 2 units plus
- * a 1-unit margin each side is exactly 16, so every cell is a whole number of
- * pixels at 16px, 32px, 64px and every other power of two a browser asks for.
+ * This matches PixelIcon exactly. That component renders a 7x7 grid of
+ * `size`-pixel squares with nothing around it -- measured in the header, a 28px
+ * box with 4px cells, 7 x 4 = 28, filling it edge to edge. An earlier version
+ * padded the icon to a 16-unit viewBox for pixel-grid reasons, which inset the
+ * mark by 6% and made the tab icon read as a smaller, floating version of the
+ * one on the page. Fidelity to the header wins: same geometry, no padding.
+ *
+ * `crispEdges` is deliberately absent. With a 7-unit box the browser scales by
+ * a fraction at 16px (16/7 = 2.29), and crisp snapping would resolve
+ * neighbouring cells to different widths -- the stair-stepping this file fixed
+ * once already. Smooth antialiasing at a fractional scale looks correct; uneven
+ * cells never do. The PNGs below cover the sizes where exact pixels matter.
  */
 const toSvg = () => {
   const rects = [];
   for (let y = 0; y < ROWS; y++) {
     for (let x = 0; x < COLS; x++) {
-      if (GLYPH[y][x] === '#') {
-        rects.push(`<rect x="${x * 2 + 1}" y="${y * 2 + 1}" width="2" height="2"/>`);
-      }
+      if (GLYPH[y][x] === '#') rects.push(`<rect x="${x}" y="${y}" width="1" height="1"/>`);
     }
   }
   // No background rect: the icon sits on the browser's own chrome, exactly as
   // the mark sits on the page.
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${COLS} ${ROWS}">
   <g fill="rgb(${MARK})">
     ${rects.join('\n    ')}
   </g>
@@ -143,10 +147,11 @@ const encodePng = (size, pixel) => {
  * becomes margin, which is why the padding is not a fixed percentage.
  */
 const renderPng = (size, { plate = null } = {}) => {
-  // size/8 matches the SVG's 16-unit grid (7 cells plus a half-cell margin each
-  // side), so both assets carry the same proportions, and it stays a whole
-  // number of pixels at every size emitted here.
-  const cell = Math.max(1, Math.floor(size / 8));
+  // size/COLS, so the glyph fills the canvas the way it fills its box in the
+  // header. Floored to whole pixels -- a fractional cell is what made the mark
+  // stair-step before -- and whatever the rounding leaves over becomes an even
+  // margin, at most a pixel or two.
+  const cell = Math.max(1, Math.floor(size / COLS));
   const offsetX = Math.floor((size - cell * COLS) / 2);
   const offsetY = Math.floor((size - cell * ROWS) / 2);
   const background = plate ? [...plate, 255] : [0, 0, 0, 0];
