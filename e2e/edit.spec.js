@@ -221,7 +221,7 @@ test.describe('images (Pro)', () => {
     await expect(page.getByRole('button', { name: /add image/i })).toBeVisible();
 
     await page.getByRole('button', { name: /replace image/i }).click();
-    await expect(page.getByText(/images are a pro feature/i)).toBeVisible();
+    await expect(page.getByText(/image editing needs pro/i)).toBeVisible();
     // Nothing was placed, and the free tools are untouched.
     await expect(page.getByRole('button', { name: /save & download/i })).toBeDisabled();
     await expect(page.getByRole('button', { name: /add text/i })).toBeEnabled();
@@ -237,7 +237,7 @@ test.describe('images (Pro)', () => {
 
     // No Pro prompt for a licensed user.
     await page.getByRole('button', { name: /add image/i }).click();
-    await expect(page.getByText(/images are a pro feature/i)).toHaveCount(0);
+    await expect(page.getByText(/image editing needs pro/i)).toHaveCount(0);
 
     // Choosing the file and clicking the page both feed the same placement.
     const chooser = page.waitForEvent('filechooser');
@@ -381,5 +381,32 @@ test.describe('manipulating placed images', () => {
       page.getByRole('button', { name: /save & download/i }).click(),
     ]);
     expect(await pageCountOf(download)).toBe(1);
+  });
+});
+
+test.describe('student tier', () => {
+  test('a student licence unlocks image editing exactly like Pro', async ({ page }) => {
+    await page.addInitScript(() => window.localStorage.setItem('pdftools-pro', 'edu'));
+    await open(page);
+    await page.locator('input[type=file]').setInputFiles(await pdfUpload('notes.pdf', 1));
+    await expect(page.getByAltText('Page 1')).toBeVisible({ timeout: 20_000 });
+
+    // Same features, no upsell, and the badge says how the access was obtained.
+    await expect(page.locator('.tag-pro')).toHaveText('Student');
+    await page.getByRole('button', { name: /add image/i }).click();
+    await expect(page.getByText(/image editing needs pro/i)).toHaveCount(0);
+
+    const chooser = page.waitForEvent('filechooser');
+    await page.locator('img[alt="Page 1"]').click({ position: { x: 180, y: 200 } });
+    await (await chooser).setFiles([pngUpload('photo.png', 48, 48)]);
+    await expect(page.locator('[data-image-edit]')).toHaveCount(1);
+  });
+
+  test('EDU key activates the student tier from the pricing page', async ({ page }) => {
+    await page.goto(`${BASE}/pricing/`);
+    await page.getByLabel('License key').fill('edu-1234');
+    await page.getByRole('button', { name: 'Activate' }).click();
+    await expect(page.getByText(/student access activated/i)).toBeVisible();
+    await expect(page.locator('.tag-pro')).toHaveText('Student');
   });
 });

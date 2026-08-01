@@ -690,10 +690,11 @@ export default function Edit() {
 
       {showProPrompt && !isPro && (
         <Notice
-          heading="Images are a Pro feature"
+          heading="Image editing needs Pro — free if you’re a student"
           body={
-            'Replacing a picture inside a PDF, and pasting new ones in, are part of Pro. Everything else on this ' +
-            'page — editing text, adding text, page tools — stays free. You’re told before you do the work, not after.'
+            'Replacing, adding and removing pictures inside a PDF are Pro features. Students get the whole of Pro ' +
+            'free with a verified university email. Everything else on this page — editing text, adding text, and ' +
+            'every page tool — stays free for everyone. You’re told before you do the work, not after.'
           }
           action={
             <div style={{ display: 'flex', gap: 12, marginTop: 16, flexWrap: 'wrap' }}>

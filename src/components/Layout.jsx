@@ -29,7 +29,7 @@ function ThemeToggle() {
 }
 
 export default function Layout() {
-  const { isPro } = usePro();
+  const { isPro, tier } = usePro();
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -84,7 +84,7 @@ export default function Layout() {
               <span className="chip__dot" />
               100% client-side
             </span>
-            {isPro && <span className="tag-pro">Pro</span>}
+            {isPro && <span className="tag-pro">{tier === 'edu' ? 'Student' : 'Pro'}</span>}
             <ThemeToggle />
           </nav>
         </div>

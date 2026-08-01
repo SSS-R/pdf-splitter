@@ -21,7 +21,7 @@ const PRO = [
 ];
 
 export default function Pricing() {
-  const { isPro, activate, deactivate } = usePro();
+  const { isPro, tier, activate, deactivate } = usePro();
   const [key, setKey] = useState('');
   const [invalid, setInvalid] = useState(false);
 
@@ -136,12 +136,20 @@ export default function Pricing() {
               </div>
               {invalid && (
                 <div style={{ color: 'var(--accent)', fontSize: 13, fontWeight: 700, marginTop: 10 }}>
-                  That key isn’t valid. Try DEMO-1234.
+                  That key isn’t valid. Try DEMO-1234, or EDU-1234 for the student tier.
                 </div>
               )}
               <button type="button" className="btn btn--primary" style={{ width: '100%', marginTop: 16 }}>
                 Buy Pro — $12
               </button>
+              <p style={{ fontSize: 13, lineHeight: 1.55, marginTop: 16 }}>
+                <strong>Students get Pro free.</strong>{' '}
+                <span className="muted">
+                  Verify with your university email and you’re issued a normal licence key at no
+                  cost — same features, same key, nothing withheld. Verification isn’t built yet;
+                  it’s next after launch.
+                </span>
+              </p>
             </form>
           ) : (
             <div
@@ -159,10 +167,12 @@ export default function Pricing() {
               </span>
               <div>
                 <div style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Pro activated
+                  {tier === 'edu' ? 'Student access activated' : 'Pro activated'}
                 </div>
                 <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>
-                  Batch tools unlocked across the site.
+                  {tier === 'edu'
+                    ? 'Every Pro feature unlocked — image editing and batch tools included.'
+                    : 'Image editing and batch tools unlocked across the site.'}
                 </div>
               </div>
               <button type="button" className="btn btn--sm" style={{ marginLeft: 'auto' }} onClick={deactivate}>
