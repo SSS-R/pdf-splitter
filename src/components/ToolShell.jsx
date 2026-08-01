@@ -9,13 +9,12 @@ import ToolCopy from './ToolCopy.jsx';
  * these pages rankable -- a page containing only a dropzone gives a crawler
  * nothing to index.
  */
-export function ToolShell({ eyebrow, title, blurb, path, children }) {
+export function ToolShell({ title, blurb, path, children }) {
   return (
     <div className="container" style={{ padding: '56px var(--gutter)' }}>
       <div className="grid12">
         <div style={{ gridColumn: '1 / 5' }}>
-          <div className="eyebrow">{eyebrow}</div>
-          <h1 className="display display--sm" style={{ margin: '12px 0 0', fontSize: 44 }}>
+          <h1 className="display display--sm" style={{ margin: 0, fontSize: 44 }}>
             {title}
           </h1>
           <p style={{ margin: '20px 0 0', fontSize: 16, lineHeight: 1.5, color: 'var(--muted-strong)' }}>
@@ -30,7 +29,7 @@ export function ToolShell({ eyebrow, title, blurb, path, children }) {
               fontWeight: 700,
               letterSpacing: '0.06em',
               textTransform: 'uppercase',
-              color: 'var(--accent)',
+              color: 'var(--accent-text)',
             }}
           >
             ← All tools

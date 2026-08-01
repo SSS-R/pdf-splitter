@@ -10,7 +10,7 @@ const navLinkStyle = ({ isActive }) => ({
   fontWeight: 700,
   letterSpacing: '0.08em',
   textTransform: 'uppercase',
-  color: isActive ? 'var(--accent)' : undefined,
+  color: isActive ? 'var(--accent-text)' : undefined,
 });
 
 const FRAME_MS = 55;
@@ -93,7 +93,12 @@ export default function Layout() {
             <span style={{ color: 'var(--accent)', display: 'inline-flex' }}>
               <PixelIcon name="logo" size={4} />
             </span>
+            {/* The wordmark drops on phones so the nav can keep Account. The
+                mark alone is 28px against ~190px for mark-plus-name, which is
+                the difference between the header fitting and the whole page
+                scrolling sideways. */}
             <span
+              className="hide-sm"
               style={{
                 fontWeight: 900,
                 letterSpacing: '0.12em',
@@ -121,7 +126,10 @@ export default function Layout() {
               <span className="chip__dot" />
               100% client-side
             </span>
-            <NavLink to="/account" style={navLinkStyle} className="hide-sm">
+            {/* Not hide-sm. With Tools, Privacy and Account all hidden, the
+                mobile nav was "Pricing" plus a theme toggle and there was no
+                hamburger -- /account had no route to it on a phone at all. */}
+            <NavLink to="/account" style={navLinkStyle}>
               Account
             </NavLink>
             {isPro && (
@@ -158,7 +166,7 @@ export default function Layout() {
           </div>
           <div style={{ gridColumn: '7 / 13', textAlign: 'right', fontSize: 13, lineHeight: 1.5 }}>
             Every network request this site makes is documented on the{' '}
-            <Link to="/privacy" style={{ color: 'var(--accent)', fontWeight: 700 }}>
+            <Link to="/privacy" style={{ color: 'var(--accent-text)', fontWeight: 700 }}>
               Privacy page
             </Link>
             .

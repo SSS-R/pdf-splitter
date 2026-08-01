@@ -25,6 +25,12 @@
   /* accent */
   --accent: #e62e2e;
   --accent-ink: #ffffff;
+  /* Small text only. #e62e2e on paper measures 4.19:1 -- under AA for
+     anything below 18.66px, which is every eyebrow, nav link and error
+     string here. Fills, rules and 46px+ figures keep --accent, where the
+     3:1 large-text threshold applies. */
+  --accent-text: #c81e1e;
+  --accent-btn: #c81e1e;
 
   /* rules */
   --rule: #111111;
@@ -70,6 +76,8 @@
 
     --accent: #ff4b4b;
     --accent-ink: #12120f;
+    --accent-text: #ff6b6b;
+    --accent-btn: #ff6b6b;
 
     --rule: #f2f2ea;
     --hairline: #35352f;
@@ -100,6 +108,8 @@
   --muted-strong: #333333;
   --accent: #e62e2e;
   --accent-ink: #ffffff;
+  --accent-text: #c81e1e;
+  --accent-btn: #c81e1e;
   --rule: #111111;
   --hairline: #dddddd;
   --band-bg: #111111;
@@ -123,6 +133,8 @@
   --muted-strong: #c4c4ba;
   --accent: #ff4b4b;
   --accent-ink: #12120f;
+  --accent-text: #ff6b6b;
+  --accent-btn: #ff6b6b;
   --rule: #f2f2ea;
   --hairline: #35352f;
   --band-bg: #f2f2ea;

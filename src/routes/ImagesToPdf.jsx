@@ -62,7 +62,7 @@ export default function ImagesToPdf() {
   };
 
   return (
-    <ToolShell eyebrow={tool.eyebrow} title="Images → PDF" blurb={tool.blurb} path={tool.path}>
+    <ToolShell title="Images → PDF" blurb={tool.blurb} path={tool.path}>
       <FileDropzone
         multiple
         accept="image/*"

@@ -5,7 +5,6 @@ export const TOOLS = [
     name: 'Split',
     icon: 'scissors',
     desc: 'Pull page ranges into separate PDFs.',
-    eyebrow: 'Tool 01',
     blurb:
       'Pull page ranges into separate files. The document is parsed in memory — nothing is sent anywhere.',
   },
@@ -14,7 +13,6 @@ export const TOOLS = [
     name: 'Merge',
     icon: 'merge',
     desc: 'Combine documents in the order you choose.',
-    eyebrow: 'Tool 02',
     blurb: 'Combine documents in the order you choose. Everything happens on your device.',
   },
   {
@@ -22,7 +20,6 @@ export const TOOLS = [
     name: 'Compress',
     icon: 'compress',
     desc: 'Shrink oversized files — honestly.',
-    eyebrow: 'Tool 03',
     blurb:
       'Shrink oversized PDFs. When we can’t help much, we say so — no fake progress bars, no meaningless “optimized”.',
   },
@@ -31,7 +28,6 @@ export const TOOLS = [
     name: 'Reorder',
     icon: 'reorder',
     desc: 'Move, rotate and delete pages.',
-    eyebrow: 'Tool 04',
     blurb: 'Move pages into a new sequence, rotate them, or drop the ones you don’t need.',
   },
   {
@@ -39,7 +35,6 @@ export const TOOLS = [
     name: 'Images → PDF',
     icon: 'images',
     desc: 'Turn scans and photos into one PDF.',
-    eyebrow: 'Tool 05',
     blurb:
       'Turn scans and photos into a single PDF. Photos are rotated upright and downscaled so the file stays sane.',
   },
@@ -48,7 +43,6 @@ export const TOOLS = [
     name: 'Edit text',
     icon: 'doc',
     desc: 'Change words already in the PDF.',
-    eyebrow: 'Tool 06',
     blurb:
       'Click any line and retype it. The old text is covered and redrawn in a matched font — everything happens on your device, so the document is never uploaded.',
   },

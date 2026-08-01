@@ -661,7 +661,7 @@ export default function Edit() {
   const noTextLayer = layout && layout.items.length === 0 && !rendering;
 
   return (
-    <ToolShell eyebrow={tool.eyebrow} title="Edit PDF" blurb={tool.blurb} path={tool.path}>
+    <ToolShell title="Edit PDF" blurb={tool.blurb} path={tool.path}>
       {!pdf.file ? (
         <FileDropzone
           onFiles={([f]) => pdf.load(f)}
@@ -968,6 +968,16 @@ export default function Edit() {
                         e.stopPropagation();
                         beginEdit(item);
                       }}
+                      // ...but mousedown never fires from a keyboard, so Enter
+                      // and Space were inert on every text run while still
+                      // taking a tab stop: the whole premise of this tool was
+                      // unreachable without a pointer. onClick covers the
+                      // keyboard path (a real pointer click is already handled
+                      // above and would otherwise open the editor twice).
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (e.detail === 0) beginEdit(item);
+                      }}
                       data-text-run={item.id}
                       title={item.text}
                       style={{
@@ -1067,7 +1077,7 @@ export default function Edit() {
             </div>
 
             {badChars.length > 0 && (
-              <p style={{ color: 'var(--accent)', fontSize: 13, fontWeight: 700, marginTop: 12, textAlign: 'center' }}>
+              <p style={{ color: 'var(--accent-text)', fontSize: 13, fontWeight: 700, marginTop: 12, textAlign: 'center' }}>
                 “{badChars.join(' ')}” can’t be written — built-in fonts cover Latin characters only.
               </p>
             )}

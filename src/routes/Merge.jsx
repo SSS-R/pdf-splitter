@@ -85,7 +85,7 @@ export default function Merge() {
   const totalPages = items.reduce((sum, i) => sum + i.pages, 0);
 
   return (
-    <ToolShell eyebrow={tool.eyebrow} title="Merge PDF" blurb={tool.blurb} path={tool.path}>
+    <ToolShell title="Merge PDF" blurb={tool.blurb} path={tool.path}>
       {!atLimit && (
         <FileDropzone
           multiple
@@ -221,7 +221,7 @@ export default function Merge() {
             {!isPro && atLimit && (
               <span className="muted" style={{ fontSize: 13 }}>
                 Free limit reached.{' '}
-                <Link to="/pricing" style={{ color: 'var(--accent)', fontWeight: 700 }}>
+                <Link to="/pricing" style={{ color: 'var(--accent-text)', fontWeight: 700 }}>
                   Pro removes it
                 </Link>
                 .

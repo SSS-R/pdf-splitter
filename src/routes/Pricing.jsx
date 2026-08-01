@@ -136,13 +136,28 @@ export default function Pricing() {
                 </button>
               </div>
               {invalid && (
-                <div style={{ color: 'var(--accent)', fontSize: 13, fontWeight: 700, marginTop: 10 }}>
+                <div style={{ color: 'var(--accent-text)', fontSize: 13, fontWeight: 700, marginTop: 10 }}>
                   That key isn’t valid. Try DEMO-1234, or EDU-1234 for the student tier.
                 </div>
               )}
-              <button type="button" className="btn btn--primary" style={{ width: '100%', marginTop: 16 }}>
-                Buy Pro — $12
-              </button>
+              {/* Deliberately not a button. Checkout does not exist yet, and a
+                  primary CTA that silently does nothing is the one failure mode
+                  a product selling honesty cannot survive. */}
+              <div
+                style={{
+                  marginTop: 16,
+                  padding: '14px 16px',
+                  border: 'var(--rule-width) solid var(--band-hairline)',
+                  fontSize: 13,
+                  lineHeight: 1.55,
+                }}
+              >
+                <strong>Checkout isn’t open yet.</strong>{' '}
+                <span className="muted">
+                  Pro is finished and the licence field above works today — payments are the last
+                  piece. We’d rather say so than show a button that does nothing.
+                </span>
+              </div>
               <p style={{ fontSize: 13, lineHeight: 1.55, marginTop: 16 }}>
                 <strong>Students get Pro free.</strong>{' '}
                 <span className="muted">

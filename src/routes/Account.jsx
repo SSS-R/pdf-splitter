@@ -57,7 +57,7 @@ export default function Account() {
               fontWeight: 700,
               letterSpacing: '0.06em',
               textTransform: 'uppercase',
-              color: 'var(--accent)',
+              color: 'var(--accent-text)',
             }}
           >
             ← All tools
@@ -130,14 +130,14 @@ export default function Account() {
                     </button>
                   </div>
                   {invalid && (
-                    <div style={{ color: 'var(--accent)', fontSize: 13, fontWeight: 700, marginTop: 10 }}>
+                    <div style={{ color: 'var(--accent-text)', fontSize: 13, fontWeight: 700, marginTop: 10 }}>
                       That key isn’t valid. Try DEMO-1234, or EDU-1234 for the student tier.
                     </div>
                   )}
                   <p className="muted" style={{ fontSize: 13, lineHeight: 1.55, marginTop: 14 }}>
                     Enter it once. It stays on this device until you clear your browser data — there is
                     no session to expire and nothing to log back into.{' '}
-                    <Link to="/pricing" style={{ color: 'var(--accent)', fontWeight: 700 }}>
+                    <Link to="/pricing" style={{ color: 'var(--accent-text)', fontWeight: 700 }}>
                       See what Pro includes
                     </Link>
                     .

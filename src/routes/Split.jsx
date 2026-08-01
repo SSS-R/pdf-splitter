@@ -50,7 +50,7 @@ export default function Split() {
   const empty = results?.filter((r) => !r.bytes) ?? [];
 
   return (
-    <ToolShell eyebrow={tool.eyebrow} title="Split PDF" blurb={tool.blurb} path={tool.path}>
+    <ToolShell title="Split PDF" blurb={tool.blurb} path={tool.path}>
       {!pdf.file ? (
         <FileDropzone
           onFiles={([f]) => pdf.load(f)}
@@ -162,7 +162,7 @@ export default function Split() {
               Split PDF
             </button>
             {failure && (
-              <span style={{ color: 'var(--accent)', fontSize: 13, fontWeight: 700 }}>{failure}</span>
+              <span style={{ color: 'var(--accent-text)', fontSize: 13, fontWeight: 700 }}>{failure}</span>
             )}
           </div>
         </div>

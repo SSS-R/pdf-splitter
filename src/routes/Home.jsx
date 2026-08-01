@@ -2,6 +2,11 @@ import { Link } from 'react-router-dom';
 import PixelIcon from '../components/PixelIcon.jsx';
 import { TOOLS } from '../lib/tools.js';
 
+// Split is the product's name, its URL, its search wedge and its hero CTA.
+// It leads the grid; everything else is a list beside it.
+const lead = TOOLS.find((t) => t.path === '/split');
+const rest = TOOLS.filter((t) => t.path !== '/split');
+
 export default function Home() {
   return (
     <>
@@ -37,127 +42,128 @@ export default function Home() {
             </div>
           </div>
 
-          {/* devtools proof panel, sitting on the dither block */}
+          {/* The proof panel. This is the only thing on the page no competitor
+              could paste in, so it gets the column rather than floating in a
+              decorative field: 76% of this space used to be checkerboard. */}
           <div
-            className="dither hide-sm"
+            className="hide-sm"
             style={{
               gridColumn: '8 / 13',
               borderLeft: 'var(--rule-width) solid var(--rule)',
               display: 'flex',
-              alignItems: 'center',
+              flexDirection: 'column',
               justifyContent: 'center',
+              padding: '72px 0 64px 40px',
             }}
           >
-            <div className="card" style={{ padding: '28px 32px', margin: 24 }}>
-              <div className="eyebrow">devtools · network</div>
-              <div className="mono" style={{ fontSize: 13, marginTop: 14, lineHeight: 1.9 }}>
-                <div>› open contract-2026.pdf</div>
-                <div>› split 1–5, 6–24</div>
-                <div style={{ fontWeight: 900 }}>
-                  requests sent: <span style={{ color: 'var(--accent)' }}>0</span>
-                </div>
-              </div>
+            <div className="label muted" style={{ fontSize: 12 }}>
+              devtools · network
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ----------------------------------------------------- tool grid -- */}
-      <section className="section">
-        <div className="container" style={{ padding: '56px var(--gutter)' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'baseline',
-              justifyContent: 'space-between',
-              marginBottom: 28,
-              gap: 16,
-            }}
-          >
-            <h2 className="label" style={{ margin: 0, fontSize: 15 }}>
-              The toolkit
-            </h2>
-            <span className="muted" style={{ fontSize: 13 }}>
-              Everything runs locally.
-            </span>
-          </div>
-
-          <div className="grid12" style={{ gap: 20 }}>
-            {TOOLS.map((tool) => (
-              <Link
-                key={tool.path}
-                to={tool.path}
-                className="card pixel pixel--lg tool-card"
-                style={{
-                  gridColumn: 'span 4',
-                  padding: 26,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 18,
-                  minHeight: 200,
-                }}
-              >
-                <PixelIcon name={tool.icon} size={5} />
-                <div>
-                  <div
-                    style={{
-                      fontSize: 22,
-                      fontWeight: 900,
-                      letterSpacing: '0.02em',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    {tool.name}
-                  </div>
-                  <div className="muted" style={{ fontSize: 14, marginTop: 8, lineHeight: 1.45 }}>
-                    {tool.desc}
-                  </div>
-                </div>
-                <span
-                  style={{
-                    marginTop: 'auto',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    color: 'var(--accent)',
-                  }}
-                >
-                  Open tool →
-                </span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* --------------------------------------------------- trust strip -- */}
-      <section className="section">
-        <div
-          className="container"
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}
-        >
-          {[
-            ['0', 'Uploads, ever'],
-            ['0', 'Accounts required'],
-            ['$12', 'Lifetime — no subscription'],
-          ].map(([figure, caption], i) => (
+            <div className="mono" style={{ fontSize: 14, marginTop: 20, lineHeight: 2 }}>
+              <div>› open contract-2026.pdf</div>
+              <div>› split 1–5, 6–24</div>
+            </div>
             <div
-              key={caption}
               style={{
-                padding: i === 0 ? '34px 32px 34px 0' : '34px 32px',
-                borderRight: i < 2 ? 'var(--rule-width) solid var(--rule)' : undefined,
+                marginTop: 24,
+                paddingTop: 24,
+                borderTop: 'var(--rule-width) solid var(--rule)',
               }}
             >
-              <div style={{ fontSize: 46, fontWeight: 900 }}>{figure}</div>
+              <div style={{ fontSize: 88, fontWeight: 900, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
+                0
+              </div>
               <div
-                className="muted"
-                style={{ fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 4 }}
+                className="label"
+                style={{ fontSize: 13, marginTop: 10, letterSpacing: '0.08em' }}
               >
-                {caption}
+                requests sent
               </div>
             </div>
-          ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ----------------------------------------------------- the toolkit --
+          Split leads at hero scale; the rest are a list. Six identical cards
+          made the product's own name one-sixth of an undifferentiated grid,
+          visually equal to Reorder -- and gave a first-time visitor no way to
+          tell which door to open. */}
+      <section className="section">
+        <div className="container" style={{ padding: '56px var(--gutter)' }}>
+          <h2 className="label" style={{ margin: '0 0 28px', fontSize: 15 }}>
+            The toolkit
+          </h2>
+
+          <div className="grid12" style={{ gap: 20, alignItems: 'stretch' }}>
+            <Link
+              to={lead.path}
+              className="card pixel pixel--lg tool-card"
+              style={{
+                gridColumn: 'span 6',
+                padding: 32,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 20,
+                minHeight: 260,
+              }}
+            >
+              <PixelIcon name={lead.icon} size={7} />
+              <div style={{ marginTop: 'auto' }}>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: 34,
+                    fontWeight: 900,
+                    letterSpacing: '0.01em',
+                    textTransform: 'uppercase',
+                    lineHeight: 1.05,
+                  }}
+                >
+                  {lead.name} PDF
+                </h3>
+                <p style={{ margin: '12px 0 0', fontSize: 16, lineHeight: 1.5, maxWidth: '34ch' }}>
+                  {lead.blurb}
+                </p>
+              </div>
+            </Link>
+
+            <div style={{ gridColumn: 'span 6', display: 'flex', flexDirection: 'column' }}>
+              {rest.map((tool, i) => (
+                <Link
+                  key={tool.path}
+                  to={tool.path}
+                  className="tool-card"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 18,
+                    padding: '18px 20px',
+                    borderTop: i === 0 ? undefined : '1px solid var(--hairline)',
+                    flex: 1,
+                  }}
+                >
+                  <PixelIcon name={tool.icon} size={4} />
+                  <div style={{ minWidth: 0 }}>
+                    <h3
+                      style={{
+                        margin: 0,
+                        fontSize: 17,
+                        fontWeight: 900,
+                        letterSpacing: '0.02em',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      {tool.name}
+                    </h3>
+                    <div className="muted" style={{ fontSize: 14, marginTop: 3, lineHeight: 1.4 }}>
+                      {tool.desc}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 

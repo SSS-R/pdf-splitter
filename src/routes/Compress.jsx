@@ -41,7 +41,7 @@ export default function Compress() {
   };
 
   return (
-    <ToolShell eyebrow={tool.eyebrow} title="Compress" blurb={tool.blurb} path={tool.path}>
+    <ToolShell title="Compress" blurb={tool.blurb} path={tool.path}>
       {!pdf.file ? (
         <FileDropzone onFiles={([f]) => pdf.load(f)} hint="or click to browse — analysed on your device" />
       ) : (
@@ -73,7 +73,7 @@ export default function Compress() {
             {!isPro && (
               <span className="muted" style={{ fontSize: 12 }}>
                 Quality controls are a{' '}
-                <Link to="/pricing" style={{ color: 'var(--accent)', fontWeight: 700 }}>
+                <Link to="/pricing" style={{ color: 'var(--accent-text)', fontWeight: 700 }}>
                   Pro
                 </Link>{' '}
                 feature

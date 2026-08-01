@@ -82,7 +82,7 @@ a:hover {
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .label {
@@ -137,6 +137,21 @@ a:hover {
 .band {
   background: var(--band-bg);
   color: var(--band-ink);
+  /* The band inverts against the sheet, so accent text has to invert with it.
+     In light mode the band is ink and needs the bright accent; in dark mode the
+     band is paper and needs the deep one. Without this the "Pro" eyebrow sat at
+     2.93:1 in dark -- worse than its own light-mode counterpart. */
+  --accent-text: #ff6b6b;
+}
+
+:root[data-theme='dark'] .band {
+  --accent-text: #c81e1e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .band {
+    --accent-text: #c81e1e;
+  }
 }
 .band .muted {
   color: var(--band-muted);
@@ -171,7 +186,10 @@ a:hover {
 }
 
 .btn--primary {
-  background: var(--accent);
+  /* --accent-text, not --accent: white on #e62e2e measures 4.38:1, under AA for
+     a 14px label. The deeper red carries the same brand colour at ~6:1. Fills
+     that hold no text keep --accent. */
+  background: var(--accent-text);
   color: var(--accent-ink);
   border-color: var(--rule);
 }
@@ -203,7 +221,7 @@ a:hover {
   color: var(--band-bg);
 }
 .band .btn--primary {
-  background: var(--accent);
+  background: var(--accent-btn);
   color: var(--accent-ink);
 }
 .band .btn--primary:hover:not(:disabled) {

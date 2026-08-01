@@ -62,7 +62,7 @@ export default function Reorder() {
   };
 
   return (
-    <ToolShell eyebrow={tool.eyebrow} title="Reorder" blurb={tool.blurb} path={tool.path}>
+    <ToolShell title="Reorder" blurb={tool.blurb} path={tool.path}>
       {!pdf.file ? (
         <FileDropzone onFiles={([f]) => pdf.load(f)} hint="or click to browse — pages stay on your device" />
       ) : (
