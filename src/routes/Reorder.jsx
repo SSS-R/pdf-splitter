@@ -4,6 +4,7 @@ import FileDropzone from '../components/FileDropzone.jsx';
 import PixelIcon from '../components/PixelIcon.jsx';
 import { ToolShell, LoadedFile, Notice, Working } from '../components/ToolShell.jsx';
 import { usePdfFile } from '../hooks/usePdfFile.js';
+import { usePageThumbnails } from '../hooks/usePageThumbnails.js';
 import { applyPagePlan, initialPlan } from '../lib/pdf/reorder.js';
 import { TOOLS } from '../lib/tools.js';
 
@@ -14,6 +15,7 @@ export default function Reorder() {
   const [plan, setPlan] = useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const { thumbs, loading: thumbsLoading } = usePageThumbnails(pdf.buffer, pdf.pageCount);
 
   useEffect(() => {
     setPlan(pdf.pageCount ? initialPlan(pdf.pageCount) : []);
@@ -121,13 +123,44 @@ export default function Reorder() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontWeight: 900,
-                    fontSize: 20,
+                    position: 'relative',
+                    overflow: 'hidden',
+                    background: 'var(--surface)',
                     transform: `rotate(${page.rotation}deg)`,
                     transition: 'transform var(--tick) steps(2)',
                   }}
                 >
-                  {page.index + 1}
+                  {thumbs.get(page.index) ? (
+                    <img
+                      src={thumbs.get(page.index)}
+                      alt={`Page ${page.index + 1}`}
+                      style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                    />
+                  ) : (
+                    // Until the render lands, the number is still the useful
+                    // thing to show -- an empty box would look broken.
+                    <span style={{ fontWeight: 900, fontSize: 20, opacity: thumbsLoading ? 0.4 : 1 }}>
+                      {page.index + 1}
+                    </span>
+                  )}
+                  {/* The page number stays visible over the preview: once every
+                      tile is a picture of text, they stop being tellable apart. */}
+                  {thumbs.get(page.index) && (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        left: 0,
+                        bottom: 0,
+                        padding: '2px 6px',
+                        fontSize: 11,
+                        fontWeight: 900,
+                        background: 'var(--ink)',
+                        color: 'var(--bg)',
+                      }}
+                    >
+                      {page.index + 1}
+                    </span>
+                  )}
                 </div>
                 <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
                   <button type="button" className="btn btn--icon" aria-label="Move earlier" disabled={i === 0} onClick={() => move(i, -1)} style={{ width: 30, height: 30, transform: 'rotate(180deg)' }}>

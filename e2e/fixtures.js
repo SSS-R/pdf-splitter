@@ -113,3 +113,11 @@ export async function pageCountOf(download) {
   const doc = await PDFDocument.load(Buffer.concat(chunks));
   return doc.getPageCount();
 }
+
+/** Raw bytes of a download, for inspecting content rather than structure. */
+export async function bytesOf(download) {
+  const stream = await download.createReadStream();
+  const chunks = [];
+  for await (const chunk of stream) chunks.push(chunk);
+  return Buffer.concat(chunks);
+}

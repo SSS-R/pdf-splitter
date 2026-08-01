@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router';
 import Layout from './components/Layout.jsx';
 import ScrollToTop from './components/ScrollToTop.jsx';
 import Home from './routes/Home.jsx';
+import { ROUTE_LOADERS, getLoadedRoute, routesPreloaded } from './lib/routeLoaders.js';
 
 /**
  * Route table, router-agnostic on purpose: App.jsx wraps it in a BrowserRouter
@@ -18,13 +19,28 @@ import Home from './routes/Home.jsx';
  * `prerenderToNodeStream`, so the static HTML holds real content, not the
  * fallback below.
  */
-const Split = lazy(() => import('./routes/Split.jsx'));
-const Merge = lazy(() => import('./routes/Merge.jsx'));
-const Compress = lazy(() => import('./routes/Compress.jsx'));
-const Reorder = lazy(() => import('./routes/Reorder.jsx'));
-const ImagesToPdf = lazy(() => import('./routes/ImagesToPdf.jsx'));
-const Pricing = lazy(() => import('./routes/Pricing.jsx'));
-const Privacy = lazy(() => import('./routes/Privacy.jsx'));
+/**
+ * Each route renders the already-loaded module when there is one (the prerender
+ * path, which populates the cache first) and falls back to a lazy chunk
+ * otherwise (the browser). Rendering the loaded component directly means the
+ * static build has no Suspense boundary to race -- see lib/routeLoaders.js.
+ */
+const routeComponent = (key) => {
+  const Lazy = lazy(ROUTE_LOADERS[key]);
+  return function RouteComponent(props) {
+    const Loaded = getLoadedRoute(key);
+    return Loaded ? <Loaded {...props} /> : <Lazy {...props} />;
+  };
+};
+
+const Split = routeComponent('Split');
+const Merge = routeComponent('Merge');
+const Compress = routeComponent('Compress');
+const Reorder = routeComponent('Reorder');
+const ImagesToPdf = routeComponent('ImagesToPdf');
+const Edit = routeComponent('Edit');
+const Pricing = routeComponent('Pricing');
+const Privacy = routeComponent('Privacy');
 
 function RouteFallback() {
   return (
@@ -34,6 +50,30 @@ function RouteFallback() {
   );
 }
 
+const toolRoutes = (
+  <Routes>
+    <Route path="split" element={<Split />} />
+    <Route path="merge" element={<Merge />} />
+    <Route path="compress" element={<Compress />} />
+    <Route path="reorder" element={<Reorder />} />
+    <Route path="images-to-pdf" element={<ImagesToPdf />} />
+    <Route path="edit" element={<Edit />} />
+    <Route path="pricing" element={<Pricing />} />
+    <Route path="privacy" element={<Privacy />} />
+    <Route path="*" element={<Navigate to="/" replace />} />
+  </Routes>
+);
+
+/**
+ * The boundary exists only for the browser, where route chunks really are
+ * fetched on demand. During prerendering every module is already in memory, so
+ * wrapping them in Suspense buys nothing and costs correctness -- React may use
+ * the boundary as a flush point and emit the page's content after the shell,
+ * behind a script that only runs if JavaScript does. See lib/routeLoaders.js.
+ */
+const routeArea = () =>
+  routesPreloaded() ? toolRoutes : <Suspense fallback={<RouteFallback />}>{toolRoutes}</Suspense>;
+
 export default function AppRoutes() {
   return (
     <>
@@ -41,23 +81,7 @@ export default function AppRoutes() {
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<Home />} />
-          <Route
-            path="*"
-            element={
-              <Suspense fallback={<RouteFallback />}>
-                <Routes>
-                  <Route path="split" element={<Split />} />
-                  <Route path="merge" element={<Merge />} />
-                  <Route path="compress" element={<Compress />} />
-                  <Route path="reorder" element={<Reorder />} />
-                  <Route path="images-to-pdf" element={<ImagesToPdf />} />
-                  <Route path="pricing" element={<Pricing />} />
-                  <Route path="privacy" element={<Privacy />} />
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </Suspense>
-            }
-          />
+          <Route path="*" element={routeArea()} />
         </Route>
       </Routes>
     </>

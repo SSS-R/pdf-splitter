@@ -107,6 +107,39 @@ test.describe('images to pdf', () => {
   });
 });
 
+test.describe('reorder', () => {
+  test('renders a real preview of every page, not just numbers', async ({ page }) => {
+    await open(page, '/reorder');
+    await page.locator('input[type=file]').setInputFiles(await pdfUpload('report.pdf', 4));
+
+    // Thumbnails arrive progressively, so wait for the last one specifically
+    // rather than assuming they all land together.
+    await expect(page.getByAltText('Page 4')).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('img[alt^="Page "]')).toHaveCount(4);
+
+    // A rendered page, not a placeholder: PDF.js output is a PNG data URL.
+    const src = await page.getByAltText('Page 1').getAttribute('src');
+    expect(src).toMatch(/^data:image\/png;base64,/);
+    expect(src.length).toBeGreaterThan(1000);
+  });
+
+  test('still rebuilds correctly once previews are showing', async ({ page }) => {
+    await open(page, '/reorder');
+    await page.locator('input[type=file]').setInputFiles(await pdfUpload('report.pdf', 4));
+    await expect(page.getByAltText('Page 4')).toBeVisible({ timeout: 20_000 });
+
+    // Drop one page, then build -- rendering must not have disturbed the plan.
+    await page.getByRole('button', { name: 'Delete page' }).first().click();
+    await expect(page.locator('img[alt^="Page "]')).toHaveCount(3);
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('button', { name: /build & download/i }).click(),
+    ]);
+    expect(await pageCountOf(download)).toBe(3);
+  });
+});
+
 test.describe('pro licensing', () => {
   test('rejects a bad key and accepts the demo key', async ({ page }) => {
     await open(page, '/pricing');

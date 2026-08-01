@@ -235,4 +235,60 @@ export const TOOL_COPY = {
   },
 };
 
+TOOL_COPY['/edit'] = {
+  sections: [
+    {
+      heading: 'How editing PDF text actually works',
+      body: [
+        'Click any line of text on the page and retype it. The original run is covered with a patch matching the background behind it, and your replacement is drawn on top in the closest available font at the same size and position.',
+        'That is genuinely how online PDF editors work, including the paid ones — and it is worth understanding why, because it explains the rough edges. A PDF is a page-description format, not a document format. It stores glyphs at fixed coordinates; it has no paragraphs, no lines and no concept of text flow. There is nothing to re-flow when a word gets longer, so editors paint over the old text and draw new text in its place.',
+      ],
+    },
+    {
+      heading: 'Why editing without uploading matters here',
+      body: [
+        'Every other online PDF editor uploads your document to a server, edits it there, and asks you to trust a retention policy — commonly "deleted after a couple of hours". Most also cap the free tier by file size, page count, or tasks per hour.',
+        'The documents people actually need to edit are the worst possible candidates for that: forms with your name and address, scanned identity documents, contracts, university paperwork, medical letters. This tool never uploads any of it. Open your browser\'s Network tab and edit a file — the request count stays at zero, and there is no limit on how many times you do it.',
+      ],
+    },
+    {
+      heading: 'Honest limitations — please read these',
+      body: [
+        'Replaced text is covered, not deleted. This is the most important thing on this page. The original words remain inside the file and can still be recovered by selecting the page, copying it, or opening it with any tool that reads PDF text. Every cover-and-replace editor works this way, including the paid ones. Do not use text editing to hide an address, a name, a salary or an ID number — for that you need true redaction, which removes the underlying content, and we have not shipped it yet. When we do, it will say so plainly.',
+        'Fonts are matched, not preserved. PDFs usually embed only the glyphs a document already uses, so the original font often physically cannot render a character you type. Replacement text is drawn in the closest standard font (Helvetica, Times or Courier, matched for bold and italic). On body text this is usually hard to spot; on a distinctive display font it will be visible.',
+        'Editing is line by line, and long replacements do not re-wrap. Type more than the original line held and the text will run on rather than flowing to the next line, because the file contains no information about where lines are allowed to break.',
+        'Backgrounds are sampled, not reconstructed. The cover patch takes the most common colour immediately above and below the text. On plain paper that is invisible. Over a photograph, gradient or table rule, the patch will show.',
+        'Only Latin characters can be typed. The built-in fonts are WinAnsi-encoded, so Bengali, Arabic, Chinese and similar scripts cannot be written — the editor tells you which characters it cannot handle instead of silently dropping them.',
+        'Scanned pages have no text to edit. A scan is a picture of text; there is nothing to select. You can still add new text on top, but changing the scanned words themselves would need OCR, which this tool does not do.',
+      ],
+    },
+  ],
+  faq: [
+    {
+      q: 'Is my PDF uploaded when I edit it?',
+      a: 'No. Rendering, text extraction and rewriting all happen in your browser. You can confirm it in your browser\'s Network tab: editing a document sends no requests.',
+    },
+    {
+      q: 'If I replace text, is the original really gone?',
+      a: 'No — and this matters. The old text is painted over, not removed, so it stays inside the file and can still be recovered by copying the page or opening it with a tool that reads PDF text. This is true of every cover-and-replace editor. Do not use it to hide sensitive information; that requires true redaction, which removes the underlying content.',
+    },
+    {
+      q: 'Why does my edited text look slightly different from the rest?',
+      a: 'Because the original font usually cannot be reused. PDFs embed only the glyphs the document already contains, so replacement text is drawn in the closest standard font instead. On ordinary body text the difference is usually subtle; on unusual fonts it is noticeable.',
+    },
+    {
+      q: 'Can I edit a scanned PDF?',
+      a: 'You can add new text on top of it, but you cannot change the scanned words. A scan is an image of text with no text layer to select. Editing it would require OCR, which this tool deliberately does not attempt.',
+    },
+    {
+      q: 'Why can\'t I type in Bengali, Arabic or Chinese?',
+      a: 'The built-in PDF fonts only cover Latin characters. Writing other scripts needs a matching font embedded in the file, which is not something this tool can do — so it tells you which characters it cannot write rather than producing a broken document.',
+    },
+    {
+      q: 'Is there a limit on file size or number of edits?',
+      a: 'No. Because nothing is uploaded there is no server cost to ration — no page cap, no size cap, no tasks-per-hour limit. The practical ceiling is your device\'s memory.',
+    },
+  ],
+};
+
 export const copyFor = (path) => TOOL_COPY[path] || null;

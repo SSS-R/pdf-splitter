@@ -64,6 +64,13 @@ export const ROUTE_META = {
     changefreq: 'monthly',
     priority: '0.9',
   },
+  '/edit': {
+    title: 'Edit PDF Text Without Uploading — Free & Private | PDF Tools',
+    description:
+      'Change the text already inside a PDF, entirely in your browser. No upload, no account, no hourly limit — unlike editors that send your document to a server and promise to delete it later.',
+    changefreq: 'monthly',
+    priority: '0.9',
+  },
   '/pricing': {
     title: 'Pricing — One Fair Price, Lifetime | PDF Tools',
     description:

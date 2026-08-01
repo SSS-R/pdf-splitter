@@ -77,7 +77,14 @@ functions/
 - [x] **Compress** — image-only recompression via canvas; **never rasterises pages**, so text stays selectable. Says "little to compress here" on CCITT/JBIG2/JPX scans instead of faking a result.
 - [x] Unit tests per lib file (38 total).
 - [ ] Compress still runs on the **main thread** — Web Worker + OffscreenCanvas deferred (see TODOS.md).
-- [ ] One Playwright happy path per tool — deferred (see TODOS.md).
+- [x] One Playwright happy path per tool ✅ DONE 2026-08-01.
+
+### 0.6 Page rendering + text editor ✅ DONE 2026-08-01 (added after Sejda comparison)
+- [x] **PDF.js added** (`src/lib/pdf/render.js`), lazy-loaded so the landing bundle stays ~78 kB gz. pdf-lib cannot rasterise, so nothing that shows the user their page was possible without it.
+- [x] **Reorder thumbnails** — real page previews replace the numbered boxes the original 0.4 spec asked for. Rendered progressively with a concurrency cap; rotation stays a CSS transform so it remains instant.
+- [x] **`/edit` — text editing by cover-and-replace.** Click a run, retype it; the original is covered with a sampled background patch and redrawn in a matched standard font. This is the same technique Sejda uses (its own editor works line by line and shifts formatting), the difference being that ours never uploads the file. Sejda's free tier caps at 50 MB / 200 pages / 3 tasks per hour; there is nothing here to ration.
+- [x] **Disclosed honestly:** replaced text is *covered, not deleted* — the original stays in the file and is still extractable. Verified by re-extracting an edited PDF, which returns both strings. The UI warns whenever a replacement edit exists, the copy leads with it, and an E2E test fails if that warning ever disappears. Also refuses non-Latin input up front rather than failing at save, since the standard fonts are WinAnsi-only.
+- [x] This makes **true redaction** (Phase 2 anchor) more valuable, not less: the editor now demonstrates the exact problem redaction solves.
 
 ### 0.5 SEO + content (the actual ranking lever)
 - [x] **Meta/OG per route, sitemap.xml, robots.txt ✅ DONE 2026-07-27** — all generated from `src/lib/seo.js` at build time, so metadata and the sitemap cannot drift from the route table. Canonicals and sitemap entries use the trailing-slash form (`/split/`) that matches the on-disk directory index, rather than relying on host-specific redirects from `/split`.

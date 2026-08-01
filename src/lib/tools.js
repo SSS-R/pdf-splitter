@@ -43,4 +43,13 @@ export const TOOLS = [
     blurb:
       'Turn scans and photos into a single PDF. Photos are rotated upright and downscaled so the file stays sane.',
   },
+  {
+    path: '/edit',
+    name: 'Edit text',
+    icon: 'doc',
+    desc: 'Change words already in the PDF.',
+    eyebrow: 'Tool 06',
+    blurb:
+      'Click any line and retype it. The old text is covered and redrawn in a matched font — everything happens on your device, so the document is never uploaded.',
+  },
 ];
