@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "build:client": "vite build",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "favicon": "node scripts/favicon.mjs"
   },
   "dependencies": {
     "file-saver": "^2.0.5",

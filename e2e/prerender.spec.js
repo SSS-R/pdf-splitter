@@ -86,6 +86,28 @@ test.describe('prerendered HTML', () => {
     expect(html).toContain('content="summary_large_image"');
   });
 
+  test('ships its own favicon, generated from the logo bitmap', async ({ request }) => {
+    // The project served Vite's default logo as its favicon for a long time.
+    // Content types are asserted deliberately: a missing file falls through to
+    // the SPA shell and answers 200 with HTML, which looks passing until you
+    // check what actually came back.
+    const svg = await request.get(`${BASE}/favicon.svg`);
+    expect(svg.status()).toBe(200);
+    expect(svg.headers()['content-type']).toContain('image/svg+xml');
+    expect(await svg.text()).toContain('<svg');
+
+    for (const file of ['favicon-32.png', 'favicon-16.png', 'apple-touch-icon.png']) {
+      const res = await request.get(`${BASE}/${file}`);
+      expect(res.status(), `${file} missing`).toBe(200);
+      expect(res.headers()['content-type'], `${file} is not a PNG`).toContain('image/png');
+    }
+
+    // And the page points at them rather than at the framework default.
+    const html = await (await request.get(`${BASE}/`)).text();
+    expect(html).toContain('href="/pdf-splitter/favicon.svg"');
+    expect(html).not.toContain('vite.svg');
+  });
+
   test('unknown paths serve a shell the client router can take over', async ({ request }) => {
     const res = await request.get(`${BASE}/404.html`);
     expect(res.status()).toBe(200);
