@@ -32,15 +32,20 @@ const ROWS = GLYPH.length;
 const COLS = GLYPH[0].length;
 
 /**
- * Cream on accent red, not the header's red-on-paper.
+ * The header's mark exactly: accent red, on nothing.
  *
- * A favicon sits on browser chrome we do not control and is often rendered at
- * 16px, so it needs its own plate for contrast rather than a transparent
- * background that disappears against a light or dark tab strip. Red also makes
- * the tab findable at a glance, which is the icon's whole job.
+ * An earlier version inverted it -- cream on a red plate -- for contrast against
+ * unknown browser chrome. It read well and it was the wrong call: the tab icon
+ * and the mark in the header were visibly different marks, which is worse than
+ * any legibility gain. Red is mid-tone enough to hold up on a light or a dark
+ * tab strip, so transparent works on both.
+ *
+ * The one exception is apple-touch-icon, which iOS composites onto an opaque
+ * background of its own choosing; that gets the site's paper colour so it reads
+ * as the light-mode header rather than whatever iOS picks.
  */
-const PLATE = [230, 46, 46];
-const MARK = [250, 250, 247];
+const MARK = [230, 46, 46];
+const PAPER = [250, 250, 247];
 
 /* ------------------------------------------------------------------ SVG -- */
 
@@ -52,9 +57,9 @@ const toSvg = () => {
     }
   }
   // 9x9 viewBox = the 7x7 glyph plus a one-cell margin, so the mark never
-  // touches the edge of a rounded tab treatment.
+  // touches the edge of a rounded tab treatment. No background rect: the icon
+  // sits on the browser's own chrome, exactly as the mark sits on the page.
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 9 9" shape-rendering="crispEdges">
-  <rect width="9" height="9" fill="rgb(${PLATE})"/>
   <g fill="rgb(${MARK})">
     ${rects.join('\n    ')}
   </g>
@@ -89,23 +94,25 @@ const chunk = (type, data) => {
   return Buffer.concat([len, body, crc]);
 };
 
+/** `pixel(x, y)` returns [r, g, b, a]; a of 0 leaves the browser's chrome showing. */
 const encodePng = (size, pixel) => {
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(size, 0);
   ihdr.writeUInt32BE(size, 4);
   ihdr[8] = 8; // bit depth
-  ihdr[9] = 2; // colour type 2 = truecolour RGB
+  ihdr[9] = 6; // colour type 6 = truecolour with alpha
 
-  const raw = Buffer.alloc(size * (1 + size * 3));
+  const raw = Buffer.alloc(size * (1 + size * 4));
   for (let y = 0; y < size; y++) {
-    const rowStart = y * (1 + size * 3);
+    const rowStart = y * (1 + size * 4);
     raw[rowStart] = 0; // filter: None
     for (let x = 0; x < size; x++) {
-      const [r, g, b] = pixel(x, y);
-      const p = rowStart + 1 + x * 3;
+      const [r, g, b, a] = pixel(x, y);
+      const p = rowStart + 1 + x * 4;
       raw[p] = r;
       raw[p + 1] = g;
       raw[p + 2] = b;
+      raw[p + 3] = a;
     }
   }
 
@@ -124,16 +131,17 @@ const encodePng = (size, pixel) => {
  * thing a pixel logo must never do. Whatever is left over after rounding
  * becomes margin, which is why the padding is not a fixed percentage.
  */
-const renderPng = (size) => {
+const renderPng = (size, { plate = null } = {}) => {
   const cell = Math.max(1, Math.floor((size * 0.78) / COLS));
   const offsetX = Math.floor((size - cell * COLS) / 2);
   const offsetY = Math.floor((size - cell * ROWS) / 2);
+  const background = plate ? [...plate, 255] : [0, 0, 0, 0];
 
   return encodePng(size, (x, y) => {
     const col = Math.floor((x - offsetX) / cell);
     const row = Math.floor((y - offsetY) / cell);
     const inside = col >= 0 && col < COLS && row >= 0 && row < ROWS;
-    return inside && GLYPH[row][col] === '#' ? MARK : PLATE;
+    return inside && GLYPH[row][col] === '#' ? [...MARK, 255] : background;
   });
 };
 
@@ -145,8 +153,10 @@ const outputs = [
   ['favicon.svg', Buffer.from(toSvg(), 'utf8')],
   ['favicon-32.png', renderPng(32)],
   ['favicon-16.png', renderPng(16)],
-  ['apple-touch-icon.png', renderPng(180)],
-  ['icon-512.png', renderPng(512)],
+  // Opaque on purpose: iOS ignores alpha and composites onto its own
+  // background, so an unspecified plate means an unpredictable one.
+  ['apple-touch-icon.png', renderPng(180, { plate: PAPER })],
+  ['icon-512.png', renderPng(512, { plate: PAPER })],
 ];
 
 for (const [name, data] of outputs) {
