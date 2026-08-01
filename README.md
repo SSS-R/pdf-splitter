@@ -1,4 +1,4 @@
-# PDF Tools — your files never leave your device
+# PDF Splitter — your files never leave your device
 
 A free PDF toolkit that runs entirely in your browser. No uploads, no accounts, no server. Open devtools, watch the Network tab, and process a file — you'll see zero requests. That's the whole point.
 

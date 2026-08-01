@@ -66,7 +66,7 @@ export default function Layout() {
                 whiteSpace: 'nowrap',
               }}
             >
-              PDF&nbsp;Tools
+              PDF&nbsp;Splitter
             </span>
           </Link>
 
@@ -106,7 +106,7 @@ export default function Layout() {
               <PixelIcon name="scissors" size={4} />
             </span>
             <span style={{ fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', fontSize: 14 }}>
-              PDF Tools
+              PDF Splitter
             </span>
             <span className="muted" style={{ fontSize: 13 }}>
               Client-side PDF toolkit · © 2026 Indevoria

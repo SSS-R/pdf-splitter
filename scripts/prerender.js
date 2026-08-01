@@ -60,7 +60,7 @@ const headFor = (route) => {
     `<meta property="og:title" content="${escapeHtml(meta.title)}" />`,
     `<meta property="og:description" content="${escapeHtml(meta.description)}" />`,
     `<meta property="og:url" content="${canonical}" />`,
-    `<meta property="og:site_name" content="PDF Tools" />`,
+    `<meta property="og:site_name" content="PDF Splitter" />`,
     `<meta property="og:type" content="website" />`,
   ];
   if (hasOgImage) {
