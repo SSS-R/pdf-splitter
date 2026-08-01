@@ -6,6 +6,7 @@ import { ToolShell, LoadedFile, Notice, Working } from '../components/ToolShell.
 import { usePdfFile } from '../hooks/usePdfFile.js';
 import { usePageThumbnails } from '../hooks/usePageThumbnails.js';
 import { applyPagePlan, initialPlan } from '../lib/pdf/reorder.js';
+import { recordUse } from '../hooks/useUsageStats.js';
 import { TOOLS } from '../lib/tools.js';
 
 const tool = TOOLS.find((t) => t.path === '/reorder');
@@ -42,6 +43,7 @@ export default function Reorder() {
     setError('');
     try {
       const bytes = await applyPagePlan(pdf.buffer, plan);
+      recordUse('reorder');
       saveAs(
         new Blob([bytes], { type: 'application/pdf' }),
         `${(pdf.file?.name || 'document.pdf').replace(/\.pdf$/i, '')}-reordered.pdf`,

@@ -1,5 +1,7 @@
+import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import PixelIcon from './PixelIcon.jsx';
+import { THEME_FRAMES } from '../lib/bitmaps.js';
 import { useTheme } from '../hooks/useTheme.js';
 import { usePro } from '../hooks/usePro.js';
 
@@ -11,9 +13,44 @@ const navLinkStyle = ({ isActive }) => ({
   color: isActive ? 'var(--accent)' : undefined,
 });
 
+const FRAME_MS = 55;
+
 function ThemeToggle() {
   const { theme, toggle } = useTheme();
   const nextIsDark = theme === 'light';
+  // Index into THEME_FRAMES: 0 is the sun (light mode), last is the moon.
+  const [frame, setFrame] = useState(theme === 'dark' ? THEME_FRAMES.length - 1 : 0);
+  const timer = useRef(null);
+
+  /**
+   * Walk the frames one at a time toward whichever end the theme now wants.
+   *
+   * Driven off `theme` rather than the click so the icon still animates when
+   * the OS flips at sunset, and so a mid-animation click simply reverses
+   * direction instead of queueing a second run.
+   */
+  const target = theme === 'dark' ? THEME_FRAMES.length - 1 : 0;
+  const reduced =
+    typeof window !== 'undefined' &&
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+  useEffect(() => {
+    // Nothing to schedule when motion is reduced: the frame is derived below.
+    if (reduced) return undefined;
+
+    timer.current = setInterval(() => {
+      setFrame((current) => {
+        if (current === target) {
+          clearInterval(timer.current);
+          return current;
+        }
+        return current < target ? current + 1 : current - 1;
+      });
+    }, FRAME_MS);
+
+    return () => clearInterval(timer.current);
+  }, [theme, reduced, target]);
+
   return (
     <button
       type="button"
@@ -23,7 +60,7 @@ function ThemeToggle() {
       title={`Switch to ${nextIsDark ? 'dark' : 'light'} mode`}
       style={{ padding: '7px 10px' }}
     >
-      <PixelIcon name={nextIsDark ? 'moon' : 'sun'} size={3} />
+      <PixelIcon matrix={THEME_FRAMES[reduced ? target : frame]} size={3} />
     </button>
   );
 }
@@ -54,7 +91,7 @@ export default function Layout() {
         >
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ color: 'var(--accent)', display: 'inline-flex' }}>
-              <PixelIcon name="scissors" size={4} />
+              <PixelIcon name="logo" size={4} />
             </span>
             <span
               style={{
@@ -84,7 +121,14 @@ export default function Layout() {
               <span className="chip__dot" />
               100% client-side
             </span>
-            {isPro && <span className="tag-pro">{tier === 'edu' ? 'Student' : 'Pro'}</span>}
+            <NavLink to="/account" style={navLinkStyle} className="hide-sm">
+              Account
+            </NavLink>
+            {isPro && (
+              <Link to="/account" className="tag-pro" style={{ textDecoration: 'none' }}>
+                {tier === 'edu' ? 'Student' : 'Pro'}
+              </Link>
+            )}
             <ThemeToggle />
           </nav>
         </div>
@@ -103,7 +147,7 @@ export default function Layout() {
             style={{ gridColumn: '1 / 7', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}
           >
             <span style={{ color: 'var(--accent)', display: 'inline-flex' }}>
-              <PixelIcon name="scissors" size={4} />
+              <PixelIcon name="logo" size={4} />
             </span>
             <span style={{ fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', fontSize: 14 }}>
               PDF Splitter

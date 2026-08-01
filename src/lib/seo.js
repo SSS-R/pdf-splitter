@@ -78,6 +78,13 @@ export const ROUTE_META = {
     changefreq: 'monthly',
     priority: '0.6',
   },
+  '/account': {
+    title: 'Your Account — Licence & Usage | PDF Splitter',
+    description:
+      'See your licence status and how much you have used each tool. Usage is counted on your own device and never sent to a server.',
+    changefreq: 'monthly',
+    priority: '0.4',
+  },
   '/privacy': {
     title: 'Privacy — Every Network Request, Documented | PDF Splitter',
     description:

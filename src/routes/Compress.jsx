@@ -6,6 +6,7 @@ import { ToolShell, LoadedFile, Notice, Working } from '../components/ToolShell.
 import { usePdfFile } from '../hooks/usePdfFile.js';
 import { usePro } from '../hooks/usePro.js';
 import { compressPdf, formatBytes, QUALITY_PRESETS } from '../lib/pdf/compress.js';
+import { recordUse } from '../hooks/useUsageStats.js';
 import { TOOLS } from '../lib/tools.js';
 
 const tool = TOOLS.find((t) => t.path === '/compress');
@@ -31,6 +32,7 @@ export default function Compress() {
     setError('');
     try {
       setResult(await compressPdf(pdf.buffer, { preset, onProgress: setProgress }));
+      recordUse('compress');
     } catch (err) {
       setError(err.message || 'Could not compress that PDF.');
     } finally {

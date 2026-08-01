@@ -41,6 +41,7 @@ const ImagesToPdf = routeComponent('ImagesToPdf');
 const Edit = routeComponent('Edit');
 const Pricing = routeComponent('Pricing');
 const Privacy = routeComponent('Privacy');
+const Account = routeComponent('Account');
 
 function RouteFallback() {
   return (
@@ -60,6 +61,7 @@ const toolRoutes = (
     <Route path="edit" element={<Edit />} />
     <Route path="pricing" element={<Pricing />} />
     <Route path="privacy" element={<Privacy />} />
+    <Route path="account" element={<Account />} />
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>
 );

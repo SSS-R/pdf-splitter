@@ -5,6 +5,7 @@ import PixelIcon from '../components/PixelIcon.jsx';
 import { ToolShell, LoadedFile, Notice, Working } from '../components/ToolShell.jsx';
 import { usePdfFile } from '../hooks/usePdfFile.js';
 import { splitPdf } from '../lib/pdf/split.js';
+import { recordUse } from '../hooks/useUsageStats.js';
 import { TOOLS } from '../lib/tools.js';
 
 const tool = TOOLS.find((t) => t.path === '/split');
@@ -37,6 +38,7 @@ export default function Split() {
     setFailure('');
     try {
       setResults(await splitPdf(pdf.buffer, values));
+      recordUse('split');
     } catch (err) {
       setFailure(err.message || 'Could not split that PDF.');
     } finally {

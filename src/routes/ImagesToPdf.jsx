@@ -4,6 +4,7 @@ import FileDropzone from '../components/FileDropzone.jsx';
 import PixelIcon from '../components/PixelIcon.jsx';
 import { ToolShell, Notice, Working } from '../components/ToolShell.jsx';
 import { imagesToPdf } from '../lib/pdf/imagesToPdf.js';
+import { recordUse } from '../hooks/useUsageStats.js';
 import { TOOLS } from '../lib/tools.js';
 
 const tool = TOOLS.find((t) => t.path === '/images-to-pdf');
@@ -51,6 +52,7 @@ export default function ImagesToPdf() {
     setError('');
     try {
       const bytes = await imagesToPdf(items.map((i) => i.file));
+      recordUse('images-to-pdf');
       saveAs(new Blob([bytes], { type: 'application/pdf' }), 'images.pdf');
     } catch (err) {
       setError(err.message || 'Could not build the PDF.');

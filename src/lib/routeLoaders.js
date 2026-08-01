@@ -30,6 +30,7 @@ export const ROUTE_LOADERS = {
   Edit: () => import('../routes/Edit.jsx'),
   Pricing: () => import('../routes/Pricing.jsx'),
   Privacy: () => import('../routes/Privacy.jsx'),
+  Account: () => import('../routes/Account.jsx'),
 };
 
 const resolved = new Map();

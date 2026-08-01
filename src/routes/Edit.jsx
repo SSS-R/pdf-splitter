@@ -14,6 +14,7 @@ import {
   cssFontFor,
   defaultCoverRect,
 } from '../lib/pdf/edit.js';
+import { recordUse } from '../hooks/useUsageStats.js';
 import { TOOLS } from '../lib/tools.js';
 
 const tool = TOOLS.find((t) => t.path === '/edit');
@@ -630,6 +631,7 @@ export default function Edit() {
     setError('');
     try {
       const bytes = await applyEdits(pdf.buffer, edits);
+      recordUse('edit');
       saveAs(
         new Blob([bytes], { type: 'application/pdf' }),
         `${(pdf.file?.name || 'document.pdf').replace(/\.pdf$/i, '')}-edited.pdf`,

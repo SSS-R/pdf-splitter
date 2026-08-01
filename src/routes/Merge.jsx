@@ -7,6 +7,7 @@ import { ToolShell, Notice, Working } from '../components/ToolShell.jsx';
 import { usePro } from '../hooks/usePro.js';
 import { mergePdfs } from '../lib/pdf/merge.js';
 import { FREE_MERGE_LIMIT, hasPdfMagicBytes, loadPdf } from '../lib/pdf/document.js';
+import { recordUse } from '../hooks/useUsageStats.js';
 import { TOOLS } from '../lib/tools.js';
 
 const tool = TOOLS.find((t) => t.path === '/merge');
@@ -73,6 +74,7 @@ export default function Merge() {
     setError('');
     try {
       setMerged(await mergePdfs(items.map((i) => i.buffer)));
+      recordUse('merge');
     } catch (err) {
       setError(err.message || 'Could not merge those PDFs.');
     } finally {
