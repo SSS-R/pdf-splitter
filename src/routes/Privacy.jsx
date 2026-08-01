@@ -35,9 +35,12 @@ export default function Privacy() {
   return (
     <div className="container" style={{ padding: '56px var(--gutter)' }}>
       <div className="grid12">
-        <div style={{ gridColumn: '1 / 4' }}>
+        {/* 1/5, matching ToolShell and Account. At 1/4 the column was 261px and
+            "documented." alone rendered 326px at 40px/900, so the heading
+            overflowed its column and collided with the table beside it. */}
+        <div style={{ gridColumn: '1 / 5' }}>
           <div className="eyebrow">Privacy</div>
-          <h1 className="display display--sm" style={{ margin: '12px 0 0', fontSize: 40 }}>
+          <h1 className="display display--sm" style={{ margin: '12px 0 0', fontSize: 'clamp(28px, 3vw, 40px)' }}>
             Every request, documented.
           </h1>
           <p style={{ margin: '20px 0 0', fontSize: 15, lineHeight: 1.55, color: 'var(--muted-strong)' }}>
@@ -55,7 +58,7 @@ export default function Privacy() {
           </div>
         </div>
 
-        <div style={{ gridColumn: '4 / 13', minWidth: 0 }}>
+        <div style={{ gridColumn: '5 / 13', minWidth: 0 }}>
           <div className="card">
             <div style={{ overflowX: 'auto' }}>
               <div style={{ minWidth: 560 }}>
