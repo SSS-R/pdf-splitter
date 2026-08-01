@@ -22,6 +22,48 @@ import { loadPdf } from './document.js';
  * extracting and re-subsetting it, which pdf-lib cannot do -- so the closest
  * match by family and weight is the honest ceiling here.
  */
+/** Family/weight/slant read off a PDF font name, shared by the editor preview. */
+export const describeFont = (fontName = '') => {
+  const name = fontName.toLowerCase();
+  const bold = /bold|black|heavy|semibold/.test(name);
+  const italic = /italic|oblique/.test(name);
+  let family = 'sans';
+  if (/times|serif|roman|georgia|garamond|book/.test(name) && !/sans/.test(name)) family = 'serif';
+  else if (/courier|mono|consol/.test(name)) family = 'mono';
+  return { family, bold, italic };
+};
+
+/**
+ * The same font choice expressed for canvas, so the on-screen preview matches
+ * what gets written into the file. One mapping, two consumers -- if these ever
+ * drift, the preview silently starts lying.
+ */
+export const cssFontFor = (fontName, sizePx) => {
+  const { family, bold, italic } = describeFont(fontName);
+  const stack =
+    family === 'serif'
+      ? '"Times New Roman", Times, serif'
+      : family === 'mono'
+        ? '"Courier New", Courier, monospace'
+        : 'Helvetica, Arial, sans-serif';
+  return `${italic ? 'italic ' : ''}${bold ? 'bold ' : ''}${sizePx}px ${stack}`;
+};
+
+/**
+ * The cover rectangle for a run, in PDF units.
+ *
+ * Computed in one place because the editor draws it on screen and pdf-lib
+ * draws it into the file; both must agree exactly. Padding is deliberate --
+ * glyphs overshoot their reported box (descenders, italics) and a tight
+ * rectangle leaves fragments of the old text visible.
+ */
+export const defaultCoverRect = ({ x, baselineY, width, fontSize }) => ({
+  coverX: x - fontSize * 0.12,
+  coverY: baselineY - fontSize * 0.26,
+  coverW: width + fontSize * 0.24,
+  coverH: fontSize * 1.28,
+});
+
 const pickStandardFont = (fontName = '') => {
   const name = fontName.toLowerCase();
   const bold = /bold|black|heavy|semibold/.test(name);
@@ -99,17 +141,21 @@ export const applyTextEdits = async (arrayBuffer, edits) => {
     const font = await fontFor(edit.fontName);
 
     if (edit.type === 'replace' && edit.cover) {
-      // Paint out the original run. Padding is deliberate: glyphs routinely
-      // overshoot the reported box (descenders, italics), and a tight rectangle
-      // leaves visible fragments of the old text poking out.
-      const padX = Math.max(1, edit.fontSize * 0.12);
-      const padTop = edit.fontSize * 0.28;
-      const padBottom = edit.fontSize * 0.26;
+      // The rectangle is supplied by the caller (defaultCoverRect, possibly
+      // resized by the user) rather than recomputed here, so what was previewed
+      // on screen is exactly what gets painted.
+      const fallback = defaultCoverRect(edit);
+      const rect = {
+        coverX: edit.coverX ?? fallback.coverX,
+        coverY: edit.coverY ?? fallback.coverY,
+        coverW: edit.coverW ?? fallback.coverW,
+        coverH: edit.coverH ?? fallback.coverH,
+      };
       page.drawRectangle({
-        x: edit.x - padX,
-        y: edit.baselineY - padBottom,
-        width: edit.width + padX * 2,
-        height: edit.fontSize + padTop,
+        x: rect.coverX,
+        y: rect.coverY,
+        width: rect.coverW,
+        height: rect.coverH,
         color: rgb(edit.cover.r / 255, edit.cover.g / 255, edit.cover.b / 255),
       });
     }

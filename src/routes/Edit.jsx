@@ -5,7 +5,12 @@ import PixelIcon from '../components/PixelIcon.jsx';
 import { ToolShell, LoadedFile, Notice, Working } from '../components/ToolShell.jsx';
 import { usePdfFile } from '../hooks/usePdfFile.js';
 import { openForRender } from '../lib/pdf/render.js';
-import { applyTextEdits, unsupportedChars } from '../lib/pdf/edit.js';
+import {
+  applyTextEdits,
+  unsupportedChars,
+  cssFontFor,
+  defaultCoverRect,
+} from '../lib/pdf/edit.js';
 import { TOOLS } from '../lib/tools.js';
 
 const tool = TOOLS.find((t) => t.path === '/edit');
@@ -64,6 +69,7 @@ export default function Edit() {
   const [error, setError] = useState('');
   const canvasRef = useRef(null);
   const inputRef = useRef(null);
+  const resizingRef = useRef(false);
 
   /**
    * Focus the inline editor a frame after it mounts.
@@ -120,8 +126,10 @@ export default function Edit() {
         );
         const { items } = await docHandle.textItems(pageIndex + 1);
         if (cancelled) return;
+        // Kept pristine: every preview is composed from this, never on top of a
+        // previous preview, so edits can be changed or undone without the page
+        // slowly accumulating artefacts.
         canvasRef.current = canvas;
-        setPageImage(canvas.toDataURL('image/png'));
         setLayout({ scale, pageWidth, pageHeight, items });
       } catch (err) {
         if (!cancelled) setError(err?.message || 'Could not render that page.');
@@ -148,23 +156,99 @@ export default function Edit() {
     [layout],
   );
 
+  /** A PDF-space cover rect -> screen rect. */
+  const rectToScreen = useCallback(
+    (rect) => {
+      const { scale, pageHeight } = layout;
+      return {
+        left: rect.coverX * scale,
+        top: (pageHeight - rect.coverY - rect.coverH) * scale,
+        width: rect.coverW * scale,
+        height: rect.coverH * scale,
+      };
+    },
+    [layout],
+  );
+
+  /**
+   * Draw the page with every pending edit applied.
+   *
+   * Showing a coloured highlight where an edit will go was not enough -- you
+   * could not tell what the result would look like until after downloading it,
+   * which made the tool feel like a guess. This paints the same cover rectangle
+   * and the same text, at the same coordinates and in the same font family
+   * that pdf-lib will use, so the page on screen is a genuine preview of the
+   * file. The shared helpers in lib/pdf/edit.js exist to keep the two in step.
+   */
+  useEffect(() => {
+    const base = canvasRef.current;
+    if (!base || !layout) return;
+    const { scale, pageHeight } = layout;
+
+    const out = document.createElement('canvas');
+    out.width = base.width;
+    out.height = base.height;
+    const ctx = out.getContext('2d');
+    ctx.drawImage(base, 0, 0);
+
+    for (const edit of edits.filter((e) => e.pageIndex === pageIndex)) {
+      if (edit.type === 'replace' && edit.cover) {
+        const fallback = defaultCoverRect(edit);
+        const rect = {
+          coverX: edit.coverX ?? fallback.coverX,
+          coverY: edit.coverY ?? fallback.coverY,
+          coverW: edit.coverW ?? fallback.coverW,
+          coverH: edit.coverH ?? fallback.coverH,
+        };
+        const screen = rectToScreen(rect);
+        ctx.fillStyle = `rgb(${edit.cover.r},${edit.cover.g},${edit.cover.b})`;
+        ctx.fillRect(screen.left, screen.top, screen.width, screen.height);
+      }
+      if (edit.text.trim()) {
+        ctx.fillStyle = 'rgb(17,17,17)';
+        ctx.font = cssFontFor(edit.fontName, edit.fontSize * scale);
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillText(edit.text, edit.x * scale, (pageHeight - edit.baselineY) * scale);
+      }
+    }
+
+    setPageImage(out.toDataURL('image/png'));
+  }, [edits, layout, pageIndex, rectToScreen]);
+
   /** Current text for a run: the pending edit if there is one, else the original. */
   const textFor = (item) => edits.find((e) => e.id === item.id)?.text ?? item.text;
 
   const beginEdit = (item) => {
     if (addMode) return;
-    setEditing({ id: item.id, item, value: textFor(item), box: boxFor(item) });
+    const existing = edits.find((e) => e.id === item.id);
+    const fallback = defaultCoverRect(item);
+    setEditing({
+      id: item.id,
+      item,
+      value: textFor(item),
+      box: boxFor(item),
+      // Reopening an edit restores the box the user last sized, not the default.
+      rect: {
+        coverX: existing?.coverX ?? fallback.coverX,
+        coverY: existing?.coverY ?? fallback.coverY,
+        coverW: existing?.coverW ?? fallback.coverW,
+        coverH: existing?.coverH ?? fallback.coverH,
+      },
+    });
   };
 
   const commitEdit = () => {
     if (!editing) return;
-    const { item, value } = editing;
+    const { item, value, rect } = editing;
     setEditing(null);
     if (value === item.text) {
       setEdits((prev) => prev.filter((e) => e.id !== item.id));
       return;
     }
-    const cover = canvasRef.current ? sampleBackground(canvasRef.current, boxFor(item)) : { r: 255, g: 255, b: 255 };
+    // Sample the background from the cover area the user actually chose.
+    const cover = canvasRef.current
+      ? sampleBackground(canvasRef.current, rectToScreen(rect))
+      : { r: 255, g: 255, b: 255 };
     setEdits((prev) => [
       ...prev.filter((e) => e.id !== item.id),
       {
@@ -178,8 +262,61 @@ export default function Edit() {
         fontSize: item.fontSize,
         fontName: item.fontName,
         cover,
+        ...rect,
       },
     ]);
+  };
+
+  /**
+   * Drag the handle to resize the cover rectangle.
+   *
+   * Necessary because the box comes from PDF.js's reported extent of the text
+   * run, which is often not what needs covering: too small and fragments of the
+   * old text survive around the edges, too large and it eats a neighbouring
+   * word or a table rule.
+   *
+   * Growing downwards means lowering coverY by the same amount the height
+   * grows, since PDF coordinates start at the bottom -- otherwise the box would
+   * appear to grow upward from its baseline.
+   */
+  const startResize = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    // The input commits on blur, and grabbing the handle blurs it. Without this
+    // flag the edit would be committed the instant a drag began and the handle
+    // would vanish under the cursor.
+    resizingRef.current = true;
+    const { scale } = layout;
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const origin = editing.rect;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+
+    const onMove = (moveEvent) => {
+      const dx = (moveEvent.clientX - startX) / scale;
+      const dy = (moveEvent.clientY - startY) / scale;
+      setEditing((state) =>
+        state
+          ? {
+              ...state,
+              rect: {
+                ...state.rect,
+                coverW: Math.max(2, origin.coverW + dx),
+                coverH: Math.max(2, origin.coverH + dy),
+                coverY: origin.coverY - Math.max(2 - origin.coverH, dy),
+              },
+            }
+          : state,
+      );
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      resizingRef.current = false;
+      inputRef.current?.focus();
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
   };
 
   const addTextAt = (event) => {
@@ -389,19 +526,59 @@ export default function Edit() {
                         width: box.width,
                         height: box.height,
                         padding: 0,
-                        border: changed ? '1px solid var(--accent)' : '1px solid transparent',
-                        background: changed ? 'rgba(230,46,46,0.10)' : 'transparent',
+                        border: 0,
+                        // The page itself now shows the edit, so an edited run
+                        // only needs a thin marker underneath. Filling it with
+                        // colour used to hide the very result being previewed.
+                        borderBottom: changed ? '2px solid var(--accent)' : '2px solid transparent',
+                        background: 'transparent',
                         cursor: 'text',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(230,46,46,0.14)';
+                        e.currentTarget.style.background = 'rgba(230,46,46,0.12)';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.background = changed ? 'rgba(230,46,46,0.10)' : 'transparent';
+                        e.currentTarget.style.background = 'transparent';
                       }}
                     />
                   );
                 })}
+
+              {/* The area that will be painted over, drawn so it can be seen
+                  and dragged before committing. */}
+              {editing && !editing.isNew && layout && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    ...(() => {
+                      const s = rectToScreen(editing.rect);
+                      return { left: s.left, top: s.top, width: s.width, height: s.height };
+                    })(),
+                    border: '1px dashed var(--accent)',
+                    background: 'rgba(230,46,46,0.06)',
+                    pointerEvents: 'none',
+                    zIndex: 4,
+                  }}
+                >
+                  <span
+                    onPointerDown={startResize}
+                    role="slider"
+                    tabIndex={0}
+                    aria-label="Resize cover area"
+                    aria-valuenow={Math.round(editing.rect.coverW)}
+                    style={{
+                      position: 'absolute',
+                      right: -6,
+                      bottom: -6,
+                      width: 12,
+                      height: 12,
+                      background: 'var(--accent)',
+                      cursor: 'nwse-resize',
+                      pointerEvents: 'auto',
+                    }}
+                  />
+                </div>
+              )}
 
               {/* Inline editor sitting exactly where the text is. */}
               {editing && (
@@ -411,7 +588,11 @@ export default function Edit() {
                   aria-label="Edit text"
                   onChange={(e) => setEditing((s) => ({ ...s, value: e.target.value }))}
                   onClick={(e) => e.stopPropagation()}
-                  onBlur={() => (editing.isNew ? commitNew() : commitEdit())}
+                  onBlur={() => {
+                    if (resizingRef.current) return;
+                    if (editing.isNew) commitNew();
+                    else commitEdit();
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') e.currentTarget.blur();
                     if (e.key === 'Escape') setEditing(null);
