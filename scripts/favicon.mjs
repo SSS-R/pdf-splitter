@@ -49,17 +49,28 @@ const PAPER = [250, 250, 247];
 
 /* ------------------------------------------------------------------ SVG -- */
 
+/**
+ * The viewBox is 16 units with 2-unit cells, not 9 units with 1-unit cells.
+ *
+ * That is the whole fix for the stair-stepping. Favicons are drawn at 16 and 32
+ * device pixels; 16/9 is 1.78, so each cell landed on a fraction of a pixel and
+ * `crispEdges` resolved neighbouring cells to different widths -- one bar 2px,
+ * the next 1px, which looked like a crack down the mark. 7 cells x 2 units plus
+ * a 1-unit margin each side is exactly 16, so every cell is a whole number of
+ * pixels at 16px, 32px, 64px and every other power of two a browser asks for.
+ */
 const toSvg = () => {
   const rects = [];
   for (let y = 0; y < ROWS; y++) {
     for (let x = 0; x < COLS; x++) {
-      if (GLYPH[y][x] === '#') rects.push(`<rect x="${x + 1}" y="${y + 1}" width="1" height="1"/>`);
+      if (GLYPH[y][x] === '#') {
+        rects.push(`<rect x="${x * 2 + 1}" y="${y * 2 + 1}" width="2" height="2"/>`);
+      }
     }
   }
-  // 9x9 viewBox = the 7x7 glyph plus a one-cell margin, so the mark never
-  // touches the edge of a rounded tab treatment. No background rect: the icon
-  // sits on the browser's own chrome, exactly as the mark sits on the page.
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 9 9" shape-rendering="crispEdges">
+  // No background rect: the icon sits on the browser's own chrome, exactly as
+  // the mark sits on the page.
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
   <g fill="rgb(${MARK})">
     ${rects.join('\n    ')}
   </g>
@@ -132,7 +143,10 @@ const encodePng = (size, pixel) => {
  * becomes margin, which is why the padding is not a fixed percentage.
  */
 const renderPng = (size, { plate = null } = {}) => {
-  const cell = Math.max(1, Math.floor((size * 0.78) / COLS));
+  // size/8 matches the SVG's 16-unit grid (7 cells plus a half-cell margin each
+  // side), so both assets carry the same proportions, and it stays a whole
+  // number of pixels at every size emitted here.
+  const cell = Math.max(1, Math.floor(size / 8));
   const offsetX = Math.floor((size - cell * COLS) / 2);
   const offsetY = Math.floor((size - cell * ROWS) / 2);
   const background = plate ? [...plate, 255] : [0, 0, 0, 0];

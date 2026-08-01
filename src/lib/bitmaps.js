@@ -7,10 +7,18 @@
  */
 
 export const BITMAPS = {
-  // Brand mark: one page become two. The scissors glyph read as a plain "x"
-  // at logo size -- two crossing strokes and nothing else -- which said
-  // "close" rather than "split".
-  logo:     ['###.###', '#.#.#.#', '#.#.#.#', '#.#.#.#', '#.#.#.#', '#.#.#.#', '###.###'],
+  // Brand mark: two pages, offset. Third attempt, and the first two are worth
+  // recording because both failed the same way -- they resolved into a symbol
+  // that already means something else.
+  //
+  //   scissors  ->  two crossing strokes, i.e. a plain "x": close, not split.
+  //   two bars  ->  '###.###' over six rows: two upright rectangles side by
+  //                 side, which is the universal pause glyph.
+  //
+  // The fix is asymmetry. Offsetting the second page diagonally breaks the
+  // mirror symmetry that made the last one read as a media control, and
+  // overlapping rectangles are already understood as "documents".
+  logo:     ['####...', '#..#...', '#..####', '#..#..#', '####..#', '...#..#', '...####'],
   scissors: ['#....#.', '.#..#..', '..##...', '..#....', '.#.#...', '#...#..', '.......'],
   merge:    ['#.....#', '.#...#.', '..#.#..', '...#...', '..#.#..', '.#...#.', '#.....#'],
   compress: ['..#.#..', '...#...', '..###..', '#.....#', '..###..', '...#...', '..#.#..'],
