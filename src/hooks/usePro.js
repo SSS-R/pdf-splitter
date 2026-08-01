@@ -29,8 +29,10 @@ import { useCallback, useSyncExternalStore } from 'react';
  * Activations are capped (10 devices) on purpose: an unlimited key posted to
  * social media grants everyone free access at zero effort, which is the attack
  * that actually happens. A cap makes sharing self-limiting and self-punishing
- * without locking out real buyers, who get a self-serve device reset. It is not
- * DRM — forking the MIT repo still bypasses everything, and that is fine.
+ * without locking out real buyers, who get a self-serve device reset. It is
+ * still not DRM: the features run client-side, so anyone determined enough can
+ * read the bundle and disable the check. The cap closes the effortless path,
+ * which is the one that gets used.
  *
  * The response's `meta.customer_email` is what binds a key to a person; the UI
  * shows it masked ("Licensed to r••••@gmail.com"). No second input field is

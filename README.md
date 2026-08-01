@@ -67,6 +67,19 @@ src/
 
 PDF logic is kept free of DOM access so it can be unit-tested directly and later moved into a Web Worker.
 
-## License
+## Licence
 
-MIT
+Proprietary — © 2026 Sultan Sajed Shahriar / Indevoria. All rights reserved.
+See [LICENSE](LICENSE).
+
+This was previously described as MIT in this README. No `LICENSE` file was ever
+committed, and the repository has no forks, so nothing was distributed under
+those terms.
+
+The privacy claim never depended on the source being public and still doesn't:
+open devtools, watch the Network tab, and process a file. Zero requests is
+something you observe, not something you take on trust.
+
+Third-party components keep their own licences — see
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). PDF.js is Apache-2.0 and
+requires attribution, which that file provides.

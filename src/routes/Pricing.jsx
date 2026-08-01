@@ -42,8 +42,9 @@ export default function Pricing() {
           Pay once. Keep it.
         </h1>
         <p style={{ margin: '18px 0 0', fontSize: 17, lineHeight: 1.5, color: 'var(--muted-strong)' }}>
-          No subscription, no per-file limits. The engine is open source; Pro unlocks batch work and
-          features still in progress — listed honestly as they land.
+          No subscription, no per-file limits, no account. Everyday tools stay free for everyone;
+          Pro unlocks image editing, batch work, and features still in progress — listed honestly as
+          they land. Students get all of it free.
         </p>
       </div>
 

@@ -140,7 +140,7 @@ export default function Home() {
           {[
             ['0', 'Uploads, ever'],
             ['0', 'Accounts required'],
-            ['MIT', 'Open source license'],
+            ['$12', 'Lifetime — no subscription'],
           ].map(([figure, caption], i) => (
             <div
               key={caption}

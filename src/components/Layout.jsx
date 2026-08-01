@@ -109,7 +109,7 @@ export default function Layout() {
               PDF Tools
             </span>
             <span className="muted" style={{ fontSize: 13 }}>
-              Client-side PDF toolkit · MIT licensed
+              Client-side PDF toolkit · © 2026 Indevoria
             </span>
           </div>
           <div style={{ gridColumn: '7 / 13', textAlign: 'right', fontSize: 13, lineHeight: 1.5 }}>
