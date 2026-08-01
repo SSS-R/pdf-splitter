@@ -105,6 +105,25 @@ export function pngUpload(name, width = 8, height = 8, colour) {
   return { name, mimeType: 'image/png', buffer: makePng(width, height, colour) };
 }
 
+/**
+ * A PDF that genuinely contains embedded pictures at known positions, so image
+ * detection can be checked against numbers rather than eyeballed.
+ */
+export async function pdfWithImages(placements = [
+  { x: 40, y: 400, width: 120, height: 120 },
+  { x: 220, y: 120, width: 90, height: 60 },
+]) {
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([420, 595]);
+  const png = await doc.embedPng(makePng(64, 64, [220, 40, 40]));
+  for (const p of placements) page.drawImage(png, p);
+  return Buffer.from(await doc.save());
+}
+
+export async function pdfWithImagesUpload(name = 'pictures.pdf', placements) {
+  return { name, mimeType: 'application/pdf', buffer: await pdfWithImages(placements) };
+}
+
 /** Read a downloaded PDF back and report its page count. */
 export async function pageCountOf(download) {
   const stream = await download.createReadStream();

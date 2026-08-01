@@ -3,10 +3,13 @@ import { saveAs } from 'file-saver';
 import FileDropzone from '../components/FileDropzone.jsx';
 import PixelIcon from '../components/PixelIcon.jsx';
 import { ToolShell, LoadedFile, Notice, Working } from '../components/ToolShell.jsx';
+import { Link } from 'react-router-dom';
 import { usePdfFile } from '../hooks/usePdfFile.js';
+import { usePro } from '../hooks/usePro.js';
 import { openForRender } from '../lib/pdf/render.js';
+import { normalizeImage } from '../lib/pdf/imagesToPdf.js';
 import {
-  applyTextEdits,
+  applyEdits,
   unsupportedChars,
   cssFontFor,
   defaultCoverRect,
@@ -67,9 +70,17 @@ export default function Edit() {
   const [addMode, setAddMode] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const { isPro } = usePro();
+  // 'replace' waits for a click on an existing picture; 'add' waits for a click
+  // anywhere on the page. Both are Pro.
+  const [imageMode, setImageMode] = useState(null);
+  const [showProPrompt, setShowProPrompt] = useState(false);
   const canvasRef = useRef(null);
   const inputRef = useRef(null);
   const resizingRef = useRef(false);
+  const imageInputRef = useRef(null);
+  // Where the next picked image goes: an existing picture's box, or a point.
+  const pendingPlacementRef = useRef(null);
 
   /**
    * Focus the inline editor a frame after it mounts.
@@ -125,12 +136,13 @@ export default function Edit() {
           { width: VIEW_WIDTH },
         );
         const { items } = await docHandle.textItems(pageIndex + 1);
+        const pictures = await docHandle.imageItems(pageIndex + 1);
         if (cancelled) return;
         // Kept pristine: every preview is composed from this, never on top of a
         // previous preview, so edits can be changed or undone without the page
         // slowly accumulating artefacts.
         canvasRef.current = canvas;
-        setLayout({ scale, pageWidth, pageHeight, items });
+        setLayout({ scale, pageWidth, pageHeight, items, pictures });
       } catch (err) {
         if (!cancelled) setError(err?.message || 'Could not render that page.');
       } finally {
@@ -192,6 +204,16 @@ export default function Edit() {
     ctx.drawImage(base, 0, 0);
 
     for (const edit of edits.filter((e) => e.pageIndex === pageIndex)) {
+      if (edit.type === 'image') {
+        ctx.drawImage(
+          edit.img,
+          edit.x * scale,
+          (pageHeight - edit.y - edit.height) * scale,
+          edit.width * scale,
+          edit.height * scale,
+        );
+        continue;
+      }
       if (edit.type === 'replace' && edit.cover) {
         const fallback = defaultCoverRect(edit);
         const rect = {
@@ -320,7 +342,25 @@ export default function Edit() {
   };
 
   const addTextAt = (event) => {
-    if (!addMode || !layout) return;
+    if (!layout) return;
+
+    // "Add image" shares the same click target as "add text".
+    if (imageMode === 'add') {
+      const box = event.currentTarget.getBoundingClientRect();
+      const { scale, pageHeight } = layout;
+      const w = Math.min(layout.pageWidth * 0.35, 220);
+      pendingPlacementRef.current = {
+        x: (event.clientX - box.left) / scale,
+        y: pageHeight - (event.clientY - box.top) / scale - w,
+        width: w,
+        height: w,
+        fit: 'contain',
+      };
+      imageInputRef.current?.click();
+      return;
+    }
+
+    if (!addMode) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const px = event.clientX - rect.left;
     const py = event.clientY - rect.top;
@@ -373,11 +413,124 @@ export default function Edit() {
     ]);
   };
 
+  /* ------------------------------------------------------------ images -- */
+
+  const requirePro = () => {
+    if (isPro) return true;
+    // Say so before any work is done, never after. Letting someone place an
+    // image and then demanding payment to download it is the pattern this
+    // whole product exists to be the opposite of.
+    setShowProPrompt(true);
+    return false;
+  };
+
+  /**
+   * Turn a picked or pasted image into an edit.
+   *
+   * The bitmap is decoded and downscaled through the same path the images->PDF
+   * tool uses, so a 12MP phone photo does not add 8MB to the document. The
+   * decoded element is kept alongside the bytes because the canvas preview has
+   * to draw it synchronously.
+   */
+  const placeImage = useCallback(
+    async (file, placement) => {
+      setError('');
+      try {
+        const { bytes, width, height } = await normalizeImage(file);
+        const url = URL.createObjectURL(new Blob([bytes], { type: 'image/jpeg' }));
+        const img = await new Promise((resolve, reject) => {
+          const el = new Image();
+          el.onload = () => resolve(el);
+          el.onerror = () => reject(new Error('That image could not be decoded.'));
+          el.src = url;
+        });
+
+        // Fit into the target box, preserving the image's own aspect ratio so a
+        // replacement never arrives stretched.
+        const ratio = width / height;
+        let w = placement.width;
+        let h = placement.height;
+        if (placement.fit === 'contain') {
+          if (w / h > ratio) w = h * ratio;
+          else h = w / ratio;
+        }
+
+        setEdits((prev) => [
+          ...prev,
+          {
+            id: `img-${Date.now()}`,
+            pageIndex,
+            type: 'image',
+            text: '',
+            bytes,
+            format: 'jpeg',
+            img,
+            url,
+            x: placement.x + (placement.width - w) / 2,
+            y: placement.y + (placement.height - h) / 2,
+            width: w,
+            height: h,
+          },
+        ]);
+      } catch (err) {
+        setError(err.message || 'Could not add that image.');
+      }
+    },
+    [pageIndex],
+  );
+
+  const onImagePicked = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    const placement = pendingPlacementRef.current;
+    pendingPlacementRef.current = null;
+    setImageMode(null);
+    if (file && placement) placeImage(file, placement);
+  };
+
+  const replacePicture = (picture) => {
+    if (!requirePro()) return;
+    pendingPlacementRef.current = { ...picture, fit: 'contain' };
+    imageInputRef.current?.click();
+  };
+
+  /**
+   * Paste an image straight from the clipboard.
+   *
+   * This is how people actually move a screenshot or a signature into a
+   * document -- copy, click, paste -- so it is worth supporting directly rather
+   * than forcing a save-to-disk round trip first.
+   */
+  useEffect(() => {
+    if (!pdf.file || !layout) return undefined;
+    const onPaste = (event) => {
+      const item = [...(event.clipboardData?.items || [])].find((i) => i.type.startsWith('image/'));
+      if (!item) return;
+      if (!requirePro()) return;
+      event.preventDefault();
+      const file = item.getAsFile();
+      if (!file) return;
+      // Dropped into the middle of the page at a readable size; it can be moved
+      // and resized afterwards like any other image edit.
+      const w = Math.min(layout.pageWidth * 0.4, 260);
+      placeImage(file, {
+        x: (layout.pageWidth - w) / 2,
+        y: layout.pageHeight / 2 - w / 2,
+        width: w,
+        height: w,
+        fit: 'contain',
+      });
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pdf.file, layout, isPro, placeImage]);
+
   const save = async () => {
     setBusy(true);
     setError('');
     try {
-      const bytes = await applyTextEdits(pdf.buffer, edits);
+      const bytes = await applyEdits(pdf.buffer, edits);
       saveAs(
         new Blob([bytes], { type: 'application/pdf' }),
         `${(pdf.file?.name || 'document.pdf').replace(/\.pdf$/i, '')}-edited.pdf`,
@@ -389,8 +542,12 @@ export default function Edit() {
     }
   };
 
+  /** Image edits hold a blob URL for the preview; drop them or they leak. */
+  const releaseImages = (list) => list.forEach((e) => e.url && URL.revokeObjectURL(e.url));
+
   const reset = () => {
     pdf.reset();
+    releaseImages(edits);
     setEdits([]);
     setEditing(null);
     setLayout(null);
@@ -431,6 +588,26 @@ export default function Edit() {
         />
       )}
       {error && <Notice heading="Couldn’t apply that" body={error} />}
+
+      {showProPrompt && !isPro && (
+        <Notice
+          heading="Images are a Pro feature"
+          body={
+            'Replacing a picture inside a PDF, and pasting new ones in, are part of Pro. Everything else on this ' +
+            'page — editing text, adding text, page tools — stays free. You’re told before you do the work, not after.'
+          }
+          action={
+            <div style={{ display: 'flex', gap: 12, marginTop: 16, flexWrap: 'wrap' }}>
+              <Link to="/pricing" className="btn btn--sm btn--primary">
+                See what Pro includes
+              </Link>
+              <button type="button" className="btn btn--sm" onClick={() => setShowProPrompt(false)}>
+                Not now
+              </button>
+            </div>
+          }
+        />
+      )}
 
       {noTextLayer && (
         <Notice
@@ -475,11 +652,48 @@ export default function Edit() {
             <button
               type="button"
               className={`btn btn--sm${addMode ? ' btn--primary' : ''}`}
-              onClick={() => setAddMode((v) => !v)}
+              onClick={() => {
+                setImageMode(null);
+                setAddMode((v) => !v);
+              }}
               style={{ marginLeft: 'auto' }}
             >
               <PixelIcon name="plus" size={2} /> {addMode ? 'Click the page…' : 'Add text'}
             </button>
+
+            <button
+              type="button"
+              className={`btn btn--sm${imageMode === 'replace' ? ' btn--primary' : ''}`}
+              onClick={() => {
+                if (!requirePro()) return;
+                setAddMode(false);
+                setImageMode((m) => (m === 'replace' ? null : 'replace'));
+              }}
+            >
+              {imageMode === 'replace' ? 'Pick a picture…' : 'Replace image'}
+              {!isPro && <span className="tag-pro" style={{ marginLeft: 8 }}>PRO</span>}
+            </button>
+
+            <button
+              type="button"
+              className={`btn btn--sm${imageMode === 'add' ? ' btn--primary' : ''}`}
+              onClick={() => {
+                if (!requirePro()) return;
+                setAddMode(false);
+                setImageMode((m) => (m === 'add' ? null : 'add'));
+              }}
+            >
+              {imageMode === 'add' ? 'Click the page…' : 'Add image'}
+              {!isPro && <span className="tag-pro" style={{ marginLeft: 8 }}>PRO</span>}
+            </button>
+
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={onImagePicked}
+            />
           </div>
 
           <div style={{ padding: 20, overflowX: 'auto' }}>
@@ -498,9 +712,40 @@ export default function Edit() {
                 <img src={pageImage} alt={`Page ${pageIndex + 1}`} style={{ width: '100%', display: 'block' }} />
               )}
 
+              {/* Existing pictures, clickable while replacing one. */}
+              {layout &&
+                imageMode === 'replace' &&
+                (layout.pictures || []).map((picture) => {
+                  const { scale, pageHeight } = layout;
+                  return (
+                    <button
+                      key={picture.id}
+                      type="button"
+                      data-picture={picture.id}
+                      aria-label="Replace this image"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        replacePicture(picture);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        left: picture.x * scale,
+                        top: (pageHeight - picture.y - picture.height) * scale,
+                        width: picture.width * scale,
+                        height: picture.height * scale,
+                        border: '2px solid var(--accent)',
+                        background: 'rgba(230,46,46,0.14)',
+                        cursor: 'pointer',
+                        zIndex: 3,
+                      }}
+                    />
+                  );
+                })}
+
               {/* Editable text runs, positioned over the rendered page. */}
               {layout &&
                 !addMode &&
+                !imageMode &&
                 layout.items.map((item) => {
                   const box = boxFor(item);
                   const changed = edits.some((e) => e.id === item.id);
@@ -638,7 +883,10 @@ export default function Edit() {
             <button
               type="button"
               className="btn btn--sm"
-              onClick={() => setEdits([])}
+              onClick={() => {
+                releaseImages(edits);
+                setEdits([]);
+              }}
               disabled={edits.length === 0}
             >
               Discard edits
@@ -652,7 +900,7 @@ export default function Edit() {
               painted over, not deleted -- it is still in the file and still
               extractable by anything that reads PDFs. Someone covering their
               address would otherwise believe it was gone. */}
-          {edits.some((e) => e.type === 'replace') && (
+          {edits.some((e) => e.type === 'replace' || e.type === 'image') && (
             <div
               style={{
                 padding: '14px 20px',
@@ -672,11 +920,13 @@ export default function Edit() {
                 }}
               />
               <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55 }}>
-                <strong>Replaced text is covered, not removed.</strong>{' '}
+                <strong>Replacements are covered, not removed.</strong>{' '}
                 <span className="muted">
-                  The original words stay inside the file and can still be recovered by copy-paste or
-                  any PDF reader. This is how every cover-and-replace editor works. Don’t use it to
-                  hide sensitive information — that needs true redaction, which we haven’t shipped yet.
+                  Replaced text and replaced pictures are both painted over — the originals stay
+                  inside the file and can still be recovered, text by copy-paste and images by any
+                  PDF extraction tool. This is how every cover-and-replace editor works. Don’t use it
+                  to hide sensitive information — that needs true redaction, which we haven’t shipped
+                  yet.
                 </span>
               </p>
             </div>

@@ -22,7 +22,7 @@ export const computeFitSize = (width, height, maxEdge = MAX_EDGE) => {
  * downscaled JPEG. `imageOrientation: 'from-image'` is what stops a portrait
  * phone photo from landing sideways in the PDF.
  */
-const normalizeImage = async (file, quality = 0.82) => {
+export const normalizeImage = async (file, quality = 0.82) => {
   const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
   const { width, height } = computeFitSize(bitmap.width, bitmap.height);
 

@@ -107,15 +107,16 @@ export const unsupportedChars = (text) => {
 
 /**
  * @param {ArrayBuffer} arrayBuffer  the original document
- * @param {Array} edits  each: { pageIndex, type: 'replace'|'add', text,
- *   x, baselineY, width, fontSize, fontName, cover: {r,g,b} | null }
+ * @param {Array} edits  text edits as above, plus image edits:
+ *   { pageIndex, type: 'image', bytes, format: 'jpeg'|'png', x, y, width, height }
  */
-export const applyTextEdits = async (arrayBuffer, edits) => {
+export const applyEdits = async (arrayBuffer, edits) => {
   if (!edits || edits.length === 0) throw new Error('No edits to apply.');
 
   // Fail before touching the document, so a rejected edit never leaves a
   // half-modified file behind.
   for (const edit of edits) {
+    if (edit.type === 'image') continue;
     const bad = unsupportedChars(edit.text);
     if (bad.length) {
       throw new Error(
@@ -138,6 +139,25 @@ export const applyTextEdits = async (arrayBuffer, edits) => {
   for (const edit of edits) {
     const page = pages[edit.pageIndex];
     if (!page) continue;
+
+    if (edit.type === 'image') {
+      // Drawn over the existing artwork rather than swapping the underlying
+      // XObject. Replacing the stream in place would mean matching its colour
+      // space, filters and bit depth, and getting any of that wrong corrupts
+      // the page. Painting on top is exact for a rectangle, and the honest cost
+      // -- the original picture stays in the file -- is the same trade the text
+      // editor already makes and discloses.
+      const embedded =
+        edit.format === 'png' ? await pdfDoc.embedPng(edit.bytes) : await pdfDoc.embedJpg(edit.bytes);
+      page.drawImage(embedded, {
+        x: edit.x,
+        y: edit.y,
+        width: edit.width,
+        height: edit.height,
+      });
+      continue;
+    }
+
     const font = await fontFor(edit.fontName);
 
     if (edit.type === 'replace' && edit.cover) {

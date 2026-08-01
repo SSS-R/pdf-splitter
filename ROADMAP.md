@@ -85,6 +85,15 @@ functions/
 - [x] **`/edit` — text editing by cover-and-replace.** Click a run, retype it; the original is covered with a sampled background patch and redrawn in a matched standard font. This is the same technique Sejda uses (its own editor works line by line and shifts formatting), the difference being that ours never uploads the file. Sejda's free tier caps at 50 MB / 200 pages / 3 tasks per hour; there is nothing here to ration.
 - [x] **Disclosed honestly:** replaced text is *covered, not deleted* — the original stays in the file and is still extractable. Verified by re-extracting an edited PDF, which returns both strings. The UI warns whenever a replacement edit exists, the copy leads with it, and an E2E test fails if that warning ever disappears. Also refuses non-Latin input up front rather than failing at save, since the standard fonts are WinAnsi-only.
 - [x] This makes **true redaction** (Phase 2 anchor) more valuable, not less: the editor now demonstrates the exact problem redaction solves.
+- [x] **Live preview ✅ 2026-08-01** — the page recomposes with every pending edit applied, rather than showing a coloured highlight you could not read. Preview and output are drawn by different code, so the font mapping and cover rect live in one shared place and an E2E test saves a file, re-renders it and pixel-diffs it against the preview (currently 0.005% different).
+- [x] **Resizable cover box ✅ 2026-08-01** — PDF.js's reported run extent is often not what needs covering, so the box is draggable.
+
+### 0.7 Images in the editor ✅ DONE 2026-08-01 — **first paid feature**
+- [x] **Replace a picture inside a PDF** and **add/paste new ones** (Ctrl+V from the clipboard). Gated behind Pro; text editing stays free.
+- [x] Image placement is recovered by replaying the page's operator list and tracking the graphics state — PDF has no queryable list of images, only draw operators, so the transform in effect at paint time *is* the rectangle. Verified against known placements in a generated fixture.
+- [x] Images are decoded and downscaled through the same path images→PDF uses (EXIF-upright, max 2400px edge) so a phone photo doesn't add megabytes.
+- [x] Drawn over the original rather than swapping the XObject stream: matching colour space, filters and bit depth is easy to get wrong and corrupts the page. Same cover-and-replace trade as text, disclosed the same way — a replaced picture is still extractable from the file.
+- [x] **The gate fires before any work**, never after. Clicking an image button while unlicensed explains the feature and links to pricing; it does not let someone place an image and then demand payment to download it.
 
 ### 0.5 SEO + content (the actual ranking lever)
 - [x] **Meta/OG per route, sitemap.xml, robots.txt ✅ DONE 2026-07-27** — all generated from `src/lib/seo.js` at build time, so metadata and the sitemap cannot drift from the route table. Canonicals and sitemap entries use the trailing-slash form (`/split/`) that matches the on-disk directory index, rather than relying on host-specific redirects from `/split`.

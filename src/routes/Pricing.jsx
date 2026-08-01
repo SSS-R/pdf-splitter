@@ -5,13 +5,16 @@ import { usePro } from '../hooks/usePro.js';
 const FREE = [
   { label: 'Split, merge, compress, reorder — unlimited', on: true },
   { label: 'Images → PDF', on: true },
+  { label: 'Edit and add text in a PDF', on: true },
   { label: '100% client-side, no uploads, no account', on: true },
+  { label: 'Replace or paste images into a PDF', on: false },
   { label: 'Batch processing', on: false },
   { label: 'True redaction', on: false },
 ];
 
 const PRO = [
   { label: 'Everything in Free', coming: false },
+  { label: 'Replace images in a PDF, and paste new ones in', coming: false },
   { label: 'Batch split & merge — no file limit', coming: false },
   { label: 'True redaction (text really removed, not hidden)', coming: true },
   { label: 'Compression quality controls', coming: true },

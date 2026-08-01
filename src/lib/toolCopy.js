@@ -254,7 +254,7 @@ TOOL_COPY['/edit'] = {
     {
       heading: 'Honest limitations — please read these',
       body: [
-        'Replaced text is covered, not deleted. This is the most important thing on this page. The original words remain inside the file and can still be recovered by selecting the page, copying it, or opening it with any tool that reads PDF text. Every cover-and-replace editor works this way, including the paid ones. Do not use text editing to hide an address, a name, a salary or an ID number — for that you need true redaction, which removes the underlying content, and we have not shipped it yet. When we do, it will say so plainly.',
+        'Replacements are covered, not deleted. This is the most important thing on this page, and it applies to pictures as much as to words. The originals remain inside the file — text can be recovered by selecting and copying the page, and a replaced image can be pulled out by any PDF extraction tool. Every cover-and-replace editor works this way, including the paid ones. Do not use it to hide an address, a name, a salary, an ID number or a face — for that you need true redaction, which removes the underlying content, and we have not shipped it yet. When we do, it will say so plainly.',
         'Fonts are matched, not preserved. PDFs usually embed only the glyphs a document already uses, so the original font often physically cannot render a character you type. Replacement text is drawn in the closest standard font (Helvetica, Times or Courier, matched for bold and italic). On body text this is usually hard to spot; on a distinctive display font it will be visible.',
         'Editing is line by line, and long replacements do not re-wrap. Type more than the original line held and the text will run on rather than flowing to the next line, because the file contains no information about where lines are allowed to break.',
         'Backgrounds are sampled, not reconstructed. The cover patch takes the most common colour immediately above and below the text. On plain paper that is invisible. Over a photograph, gradient or table rule, the patch will show.',
@@ -264,6 +264,10 @@ TOOL_COPY['/edit'] = {
     },
   ],
   faq: [
+    {
+      q: 'Can I replace a photo inside the PDF, or paste one in?',
+      a: 'Yes — both, and they are Pro features. Click "Replace image" and pick any picture on the page to swap it, or "Add image" to place a new one, or simply paste from the clipboard with Ctrl+V. Images are decoded and downscaled on your device first, so a phone photo does not add megabytes to the file. Editing and adding text stay free.',
+    },
     {
       q: 'Is my PDF uploaded when I edit it?',
       a: 'No. Rendering, text extraction and rewriting all happen in your browser. You can confirm it in your browser\'s Network tab: editing a document sends no requests.',

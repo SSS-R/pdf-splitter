@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { pdfUpload, pageCountOf, bytesOf } from './fixtures.js';
+import { pdfUpload, pngUpload, pdfWithImagesUpload, pageCountOf, bytesOf } from './fixtures.js';
 import { BASE } from '../playwright.config.js';
 
 /**
@@ -200,5 +200,102 @@ test.describe('pdf text editor', () => {
     await page.getByLabel('Edit text').press('Enter');
 
     expect(external, `unexpected outbound requests: ${external.join(', ')}`).toHaveLength(0);
+  });
+});
+
+/**
+ * Images are the first paid feature in the product, so these cover the gate as
+ * much as the drawing: a paywall that reveals itself only after the user has
+ * done the work would undercut the whole pitch.
+ */
+test.describe('images (Pro)', () => {
+  const goPro = (page) =>
+    page.addInitScript(() => window.localStorage.setItem('pdftools-pro', '1'));
+
+  test('image buttons are marked Pro and explain before any work is done', async ({ page }) => {
+    await open(page);
+    await page.locator('input[type=file]').setInputFiles(await pdfUpload('notes.pdf', 1));
+    await expect(page.getByAltText('Page 1')).toBeVisible({ timeout: 20_000 });
+
+    await expect(page.getByRole('button', { name: /replace image/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /add image/i })).toBeVisible();
+
+    await page.getByRole('button', { name: /replace image/i }).click();
+    await expect(page.getByText(/images are a pro feature/i)).toBeVisible();
+    // Nothing was placed, and the free tools are untouched.
+    await expect(page.getByRole('button', { name: /save & download/i })).toBeDisabled();
+    await expect(page.getByRole('button', { name: /add text/i })).toBeEnabled();
+  });
+
+  test('a Pro user can place an image and it reaches the saved PDF', async ({ page }) => {
+    await goPro(page);
+    await open(page);
+    await page.locator('input[type=file]').setInputFiles(await pdfUpload('notes.pdf', 1));
+    await expect(page.getByAltText('Page 1')).toBeVisible({ timeout: 20_000 });
+
+    const before = await page.getAttribute('img[alt="Page 1"]', 'src');
+
+    // No Pro prompt for a licensed user.
+    await page.getByRole('button', { name: /add image/i }).click();
+    await expect(page.getByText(/images are a pro feature/i)).toHaveCount(0);
+
+    // Choosing the file and clicking the page both feed the same placement.
+    const chooser = page.waitForEvent('filechooser');
+    await page.locator('img[alt="Page 1"]').click({ position: { x: 200, y: 200 } });
+    await (await chooser).setFiles([pngUpload('photo.png', 64, 64, [20, 120, 220])]);
+
+    await expect
+      .poll(async () => page.getAttribute('img[alt="Page 1"]', 'src'), { timeout: 15_000 })
+      .not.toBe(before);
+    await expect(page.getByText(/1 edit ready/)).toBeVisible();
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('button', { name: /save & download/i }).click(),
+    ]);
+    expect(await pageCountOf(download)).toBe(1);
+    // An embedded image makes the file materially bigger than the 1 KB original.
+    expect((await bytesOf(download)).length).toBeGreaterThan(2000);
+  });
+
+  test('warns that a replaced picture is covered, not removed', async ({ page }) => {
+    await goPro(page);
+    await open(page);
+    await page.locator('input[type=file]').setInputFiles(await pdfUpload('notes.pdf', 1));
+    await expect(page.getByAltText('Page 1')).toBeVisible({ timeout: 20_000 });
+
+    await page.getByRole('button', { name: /add image/i }).click();
+    const chooser = page.waitForEvent('filechooser');
+    await page.locator('img[alt="Page 1"]').click({ position: { x: 150, y: 150 } });
+    await (await chooser).setFiles([pngUpload('photo.png', 32, 32)]);
+
+    await expect(page.getByText(/covered, not removed/i)).toBeVisible({ timeout: 15_000 });
+  });
+});
+
+test.describe('image detection', () => {
+  test('finds embedded pictures at their true positions', async ({ page }) => {
+    await page.addInitScript(() => window.localStorage.setItem('pdftools-pro', '1'));
+    await open(page);
+    await page.locator('input[type=file]').setInputFiles(await pdfWithImagesUpload());
+    await expect(page.getByAltText('Page 1')).toBeVisible({ timeout: 20_000 });
+
+    await page.getByRole('button', { name: /replace image/i }).click();
+    const boxes = page.locator('[data-picture]');
+    await expect(boxes).toHaveCount(2);
+
+    // PDF has no list of images -- placement is recovered by replaying the
+    // operator list and tracking the transform, so the numbers are worth
+    // asserting. The page is 420pt wide shown at 780px, i.e. 1.857x.
+    const first = await boxes.nth(0).boundingBox();
+    expect(first.width).toBeGreaterThan(215);
+    expect(first.width).toBeLessThan(231);
+    expect(Math.abs(first.width - first.height)).toBeLessThan(4);
+
+    const second = await boxes.nth(1).boundingBox();
+    expect(second.width).toBeGreaterThan(160);
+    expect(second.width).toBeLessThan(175);
+    expect(second.height).toBeGreaterThan(104);
+    expect(second.height).toBeLessThan(119);
   });
 });
