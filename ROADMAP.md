@@ -9,7 +9,7 @@
 **Non-negotiable principles**
 1. No file data ever touches a server. Only license checks, page-view analytics, and (later) email verification do — and never on pages where files are open.
 2. Basic tools stay free with no login, forever.
-3. The paywall is honor-system (public MIT repo, client-side features). Never spend effort "protecting" it — every such mechanism punishes paying customers only.
+3. The paywall is honour-system **because the features run client-side**, not because the repo is public — the source went proprietary on 2026-08-01, but the bundle still ships to every visitor and always will. Never spend effort "protecting" it beyond closing the effortless path; every further mechanism punishes paying customers only.
 4. Fair pricing beats revenue targets. Price is TBD pending research; $12 lifetime is the working placeholder.
 
 ---
