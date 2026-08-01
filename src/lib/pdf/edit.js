@@ -140,6 +140,20 @@ export const applyEdits = async (arrayBuffer, edits) => {
     const page = pages[edit.pageIndex];
     if (!page) continue;
 
+    if (edit.type === 'imageCover') {
+      // Removing a picture means painting the page colour over it. As with
+      // text, the original is hidden rather than deleted and is still
+      // extractable -- the UI says so.
+      page.drawRectangle({
+        x: edit.x,
+        y: edit.y,
+        width: edit.width,
+        height: edit.height,
+        color: rgb(edit.cover.r / 255, edit.cover.g / 255, edit.cover.b / 255),
+      });
+      continue;
+    }
+
     if (edit.type === 'image') {
       // Drawn over the existing artwork rather than swapping the underlying
       // XObject. Replacing the stream in place would mean matching its colour

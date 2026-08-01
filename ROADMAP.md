@@ -94,6 +94,8 @@ functions/
 - [x] Images are decoded and downscaled through the same path images→PDF uses (EXIF-upright, max 2400px edge) so a phone photo doesn't add megabytes.
 - [x] Drawn over the original rather than swapping the XObject stream: matching colour space, filters and bit depth is easy to get wrong and corrupts the page. Same cover-and-replace trade as text, disclosed the same way — a replaced picture is still extractable from the file.
 - [x] **The gate fires before any work**, never after. Clicking an image button while unlicensed explains the feature and links to pricing; it does not let someone place an image and then demand payment to download it.
+- [x] **Placed images are movable, resizable and deletable** after dropping — select, drag to move, drag the corner to resize, × to delete. Screen y runs down and PDF y runs up, so a move lowers the stored y and a resize must lower it by the height delta to keep the top edge fixed.
+- [x] **Existing pictures offer Replace *or* Remove.** Remove paints the sampled page colour over the picture; like every other cover operation here it hides rather than erases, and the warning says so explicitly ("deleting a picture hides it; it does not erase it").
 
 ### 0.5 SEO + content (the actual ranking lever)
 - [x] **Meta/OG per route, sitemap.xml, robots.txt ✅ DONE 2026-07-27** — all generated from `src/lib/seo.js` at build time, so metadata and the sitemap cannot drift from the route table. Canonicals and sitemap entries use the trailing-slash form (`/split/`) that matches the on-disk directory index, rather than relying on host-specific redirects from `/split`.

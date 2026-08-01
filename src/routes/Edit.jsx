@@ -75,6 +75,7 @@ export default function Edit() {
   // anywhere on the page. Both are Pro.
   const [imageMode, setImageMode] = useState(null);
   const [showProPrompt, setShowProPrompt] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
   const canvasRef = useRef(null);
   const inputRef = useRef(null);
   const resizingRef = useRef(false);
@@ -204,6 +205,16 @@ export default function Edit() {
     ctx.drawImage(base, 0, 0);
 
     for (const edit of edits.filter((e) => e.pageIndex === pageIndex)) {
+      if (edit.type === 'imageCover') {
+        ctx.fillStyle = `rgb(${edit.cover.r},${edit.cover.g},${edit.cover.b})`;
+        ctx.fillRect(
+          edit.x * scale,
+          (pageHeight - edit.y - edit.height) * scale,
+          edit.width * scale,
+          edit.height * scale,
+        );
+        continue;
+      }
       if (edit.type === 'image') {
         ctx.drawImage(
           edit.img,
@@ -343,6 +354,8 @@ export default function Edit() {
 
   const addTextAt = (event) => {
     if (!layout) return;
+    // A click on bare page area drops the current image selection.
+    if (!addMode && !imageMode) setSelectedImage(null);
 
     // "Add image" shares the same click target as "add text".
     if (imageMode === 'add') {
@@ -478,6 +491,92 @@ export default function Edit() {
     },
     [pageIndex],
   );
+
+  /** An image edit's rect (PDF space, y = bottom) -> screen box. */
+  const imageToScreen = useCallback(
+    (edit) => {
+      const { scale, pageHeight } = layout;
+      return {
+        left: edit.x * scale,
+        top: (pageHeight - edit.y - edit.height) * scale,
+        width: edit.width * scale,
+        height: edit.height * scale,
+      };
+    },
+    [layout],
+  );
+
+  const updateEdit = (id, patch) =>
+    setEdits((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+
+  const removeEdit = (id) => {
+    setEdits((prev) => {
+      const going = prev.find((e) => e.id === id);
+      if (going?.url) URL.revokeObjectURL(going.url);
+      return prev.filter((e) => e.id !== id);
+    });
+    setSelectedImage(null);
+  };
+
+  /**
+   * Drag a placed image around, or resize it from the corner.
+   *
+   * Screen y runs downward and PDF y runs upward, so moving down *lowers* the
+   * stored y. Resizing has the same wrinkle: the stored y is the bottom edge,
+   * so growing the box downward must lower y by the same amount or the image
+   * would appear to grow upward out of its own top edge.
+   */
+  const startImageDrag = (event, edit, mode) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setSelectedImage(edit.id);
+    const { scale } = layout;
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const origin = { x: edit.x, y: edit.y, width: edit.width, height: edit.height };
+
+    const onMove = (moveEvent) => {
+      const dx = (moveEvent.clientX - startX) / scale;
+      const dy = (moveEvent.clientY - startY) / scale;
+      if (mode === 'move') {
+        updateEdit(edit.id, { x: origin.x + dx, y: origin.y - dy });
+      } else {
+        const width = Math.max(8, origin.width + dx);
+        const height = Math.max(8, origin.height + dy);
+        updateEdit(edit.id, { width, height, y: origin.y - (height - origin.height) });
+      }
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+
+  /** Cover an existing picture with the page colour behind it. */
+  const removePicture = (picture) => {
+    if (!requirePro()) return;
+    setImageMode(null);
+    const screen = imageToScreen({ ...picture, x: picture.x, y: picture.y });
+    const cover = canvasRef.current
+      ? sampleBackground(canvasRef.current, screen)
+      : { r: 255, g: 255, b: 255 };
+    setEdits((prev) => [
+      ...prev,
+      {
+        id: `imgcover-${Date.now()}`,
+        pageIndex,
+        type: 'imageCover',
+        text: '',
+        x: picture.x,
+        y: picture.y,
+        width: picture.width,
+        height: picture.height,
+        cover,
+      },
+    ]);
+  };
 
   const onImagePicked = (event) => {
     const file = event.target.files?.[0];
@@ -712,21 +811,15 @@ export default function Edit() {
                 <img src={pageImage} alt={`Page ${pageIndex + 1}`} style={{ width: '100%', display: 'block' }} />
               )}
 
-              {/* Existing pictures, clickable while replacing one. */}
+              {/* Existing pictures: each offers replace or remove. */}
               {layout &&
                 imageMode === 'replace' &&
                 (layout.pictures || []).map((picture) => {
                   const { scale, pageHeight } = layout;
                   return (
-                    <button
+                    <div
                       key={picture.id}
-                      type="button"
                       data-picture={picture.id}
-                      aria-label="Replace this image"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        replacePicture(picture);
-                      }}
                       style={{
                         position: 'absolute',
                         left: picture.x * scale,
@@ -735,12 +828,122 @@ export default function Edit() {
                         height: picture.height * scale,
                         border: '2px solid var(--accent)',
                         background: 'rgba(230,46,46,0.14)',
-                        cursor: 'pointer',
                         zIndex: 3,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
                       }}
-                    />
+                    >
+                      <button
+                        type="button"
+                        className="btn btn--sm btn--primary"
+                        aria-label="Replace this image"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          replacePicture(picture);
+                        }}
+                      >
+                        Replace
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn--sm"
+                        aria-label="Remove this image"
+                        style={{ background: 'var(--bg)' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removePicture(picture);
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
                   );
                 })}
+
+              {/* Placed images: draggable, resizable, removable. */}
+              {layout &&
+                !addMode &&
+                !imageMode &&
+                edits
+                  .filter((e) => e.type === 'image' && e.pageIndex === pageIndex)
+                  .map((edit) => {
+                    const box = imageToScreen(edit);
+                    const selected = selectedImage === edit.id;
+                    return (
+                      <div
+                        key={edit.id}
+                        data-image-edit={edit.id}
+                        onPointerDown={(e) => startImageDrag(e, edit, 'move')}
+                        // pointerdown selects, but the click that follows still
+                        // bubbles to the page container, whose handler clears
+                        // the selection -- so the box deselected itself the
+                        // instant it was picked.
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          position: 'absolute',
+                          left: box.left,
+                          top: box.top,
+                          width: box.width,
+                          height: box.height,
+                          border: selected
+                            ? '2px solid var(--accent)'
+                            : '1px dashed rgba(230,46,46,0.55)',
+                          cursor: 'move',
+                          zIndex: 3,
+                          touchAction: 'none',
+                        }}
+                      >
+                        {selected && (
+                          <>
+                            <span
+                              role="slider"
+                              tabIndex={0}
+                              aria-label="Resize image"
+                              aria-valuenow={Math.round(edit.width)}
+                              onPointerDown={(e) => startImageDrag(e, edit, 'resize')}
+                              style={{
+                                position: 'absolute',
+                                right: -7,
+                                bottom: -7,
+                                width: 14,
+                                height: 14,
+                                background: 'var(--accent)',
+                                cursor: 'nwse-resize',
+                                touchAction: 'none',
+                              }}
+                            />
+                            <button
+                              type="button"
+                              aria-label="Delete image"
+                              onPointerDown={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeEdit(edit.id);
+                              }}
+                              style={{
+                                position: 'absolute',
+                                right: -10,
+                                top: -10,
+                                width: 20,
+                                height: 20,
+                                padding: 0,
+                                border: 0,
+                                background: 'var(--ink)',
+                                color: 'var(--bg)',
+                                fontWeight: 900,
+                                cursor: 'pointer',
+                                lineHeight: 1,
+                              }}
+                            >
+                              ×
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
 
               {/* Editable text runs, positioned over the rendered page. */}
               {layout &&
@@ -900,7 +1103,7 @@ export default function Edit() {
               painted over, not deleted -- it is still in the file and still
               extractable by anything that reads PDFs. Someone covering their
               address would otherwise believe it was gone. */}
-          {edits.some((e) => e.type === 'replace' || e.type === 'image') && (
+          {edits.some((e) => e.type === 'replace' || e.type === 'image' || e.type === 'imageCover') && (
             <div
               style={{
                 padding: '14px 20px',
@@ -920,13 +1123,13 @@ export default function Edit() {
                 }}
               />
               <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55 }}>
-                <strong>Replacements are covered, not removed.</strong>{' '}
+                <strong>Covered, not removed.</strong>{' '}
                 <span className="muted">
-                  Replaced text and replaced pictures are both painted over — the originals stay
-                  inside the file and can still be recovered, text by copy-paste and images by any
-                  PDF extraction tool. This is how every cover-and-replace editor works. Don’t use it
-                  to hide sensitive information — that needs true redaction, which we haven’t shipped
-                  yet.
+                  Replaced text, and pictures you replace or delete, are all painted over — the
+                  originals stay inside the file and can still be recovered, text by copy-paste and
+                  images by any PDF extraction tool. Deleting a picture here hides it; it does not
+                  erase it. This is how every cover-and-replace editor works. Don’t use it to hide
+                  sensitive information — that needs true redaction, which we haven’t shipped yet.
                 </span>
               </p>
             </div>
