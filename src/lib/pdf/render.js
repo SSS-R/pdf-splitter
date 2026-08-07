@@ -41,7 +41,13 @@ const loadPdfjs = () => {
  */
 export async function openForRender(arrayBuffer) {
   const pdfjs = await loadPdfjs();
-  const doc = await pdfjs.getDocument({ data: arrayBuffer.slice(0) }).promise;
+  // Keep the loading task, not just the document: teardown lives on the task.
+  // PDFDocumentProxy has no destroy() in pdf.js 6 -- it has cleanup(), which
+  // only releases page caches. Calling doc.destroy() threw, and because every
+  // call site was an effect cleanup or a finally block the throw went unnoticed,
+  // so the worker was never terminated and each opened file leaked one.
+  const loadingTask = pdfjs.getDocument({ data: arrayBuffer.slice(0) });
+  const doc = await loadingTask.promise;
 
   return {
     pageCount: doc.numPages,
@@ -189,7 +195,7 @@ export async function openForRender(arrayBuffer) {
     },
 
     destroy() {
-      doc.destroy();
+      loadingTask.destroy();
     },
   };
 }

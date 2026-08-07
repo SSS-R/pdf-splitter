@@ -49,15 +49,15 @@ export default function ToolCopy({ path }) {
 
   return (
     <section
+      className="tool-copy"
       style={{
         marginTop: 64,
         paddingTop: 40,
         borderTop: 'var(--rule-width) solid var(--rule)',
-        maxWidth: '68ch',
       }}
     >
       {copy.sections.map((section) => (
-        <div key={section.heading} style={{ marginBottom: 36 }}>
+        <div key={section.heading} className="tool-copy__block" style={{ marginBottom: 36 }}>
           <h2
             className="display display--sm"
             style={{ fontSize: 22, margin: '0 0 14px', textShadow: 'none' }}
@@ -81,14 +81,14 @@ export default function ToolCopy({ path }) {
       ))}
 
       <h2
-        className="display display--sm"
+        className="display display--sm tool-copy__block"
         style={{ fontSize: 22, margin: '0 0 20px', textShadow: 'none' }}
       >
         Common questions
       </h2>
       <dl style={{ margin: 0 }}>
         {copy.faq.map(({ q, a }) => (
-          <div key={q} style={{ marginBottom: 22 }}>
+          <div key={q} className="tool-copy__block" style={{ marginBottom: 22 }}>
             <dt style={{ fontWeight: 900, fontSize: 16, marginBottom: 6 }}>{q}</dt>
             <dd
               style={{

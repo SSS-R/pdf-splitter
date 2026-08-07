@@ -31,6 +31,7 @@ export const ROUTE_LOADERS = {
   Pricing: () => import('../routes/Pricing.jsx'),
   Privacy: () => import('../routes/Privacy.jsx'),
   Account: () => import('../routes/Account.jsx'),
+  PdfToDocx: () => import('../routes/PdfToDocx.jsx'),
 };
 
 const resolved = new Map();

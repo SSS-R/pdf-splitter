@@ -42,6 +42,7 @@ const Edit = routeComponent('Edit');
 const Pricing = routeComponent('Pricing');
 const Privacy = routeComponent('Privacy');
 const Account = routeComponent('Account');
+const PdfToDocx = routeComponent('PdfToDocx');
 
 function RouteFallback() {
   return (
@@ -62,6 +63,7 @@ const toolRoutes = (
     <Route path="pricing" element={<Pricing />} />
     <Route path="privacy" element={<Privacy />} />
     <Route path="account" element={<Account />} />
+    <Route path="pdf-to-docx" element={<PdfToDocx />} />
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>
 );

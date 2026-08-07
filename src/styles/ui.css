@@ -389,3 +389,36 @@ a:hover {
     transition: none !important;
   }
 }
+
+/* ------------------------------------------------------------ tool copy -- */
+
+/*
+  Long-form copy set in two columns.
+
+  A tool page was a ~180px control followed by ~2,500px of prose in a 68ch
+  measure, with the left grid column empty for the whole scroll. Running the
+  copy full width in two columns roughly halves the page height and uses the
+  space the sidebar was wasting, without cutting a word -- the prose is the
+  entire organic-search surface, so shortening it would trade traffic for
+  density.
+
+  `break-inside: avoid` keeps a heading with its paragraphs and a question with
+  its answer; without it a column break lands mid-block and the text stops
+  reading as one thought.
+*/
+.tool-copy {
+  columns: 2;
+  column-gap: 56px;
+}
+
+.tool-copy__block {
+  break-inside: avoid;
+  page-break-inside: avoid; /* Safari still wants the old name */
+}
+
+/* One column once two would be narrower than a readable measure. */
+@media (max-width: 900px) {
+  .tool-copy {
+    columns: 1;
+  }
+}

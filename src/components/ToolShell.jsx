@@ -35,10 +35,19 @@ export function ToolShell({ title, blurb, path, children }) {
             ← All tools
           </Link>
         </div>
-        <div style={{ gridColumn: '5 / 13', minWidth: 0 }}>
-          {children}
-          {path && <ToolCopy path={path} />}
-        </div>
+        <div style={{ gridColumn: '5 / 13', minWidth: 0 }}>{children}</div>
+
+        {/* The copy runs the full width beneath both columns rather than being
+            trapped in the right one. It used to sit in a 68ch measure under a
+            180px dropzone, so a tool page was a small control and then two and a
+            half thousand pixels of prose, with the left column empty the whole
+            way down. Full width lets it set in two columns, which roughly halves
+            the page and puts that empty space to work. */}
+        {path && (
+          <div style={{ gridColumn: '1 / 13', minWidth: 0 }}>
+            <ToolCopy path={path} />
+          </div>
+        )}
       </div>
     </div>
   );

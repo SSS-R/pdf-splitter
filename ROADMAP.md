@@ -79,6 +79,12 @@ functions/
 - [ ] Compress still runs on the **main thread** — Web Worker + OffscreenCanvas deferred (see TODOS.md).
 - [x] One Playwright happy path per tool ✅ DONE 2026-08-01.
 
+### 0.8 PDF to Word ✅ DONE 2026-08-07 (user request)
+- [x] **/pdf-to-docx** extracts text, headings and paragraphs into an editable .docx, entirely client-side. A .docx is a ZIP of XML parts, so it is written by hand -- a minimal stored-ZIP writer plus three OOXML parts, no dependency added.
+- [x] Structure is inferred from geometry: shared baselines are a line, close lines are a paragraph, text larger than the body size is a heading. Body size is the **mode** of line sizes, not the median -- in a document with many headings relative to prose the median sits between the two and every heading measures too small.
+- [x] Wrapped lines are rejoined: a PDF line break marks where the page ran out, not where a sentence ended.
+- [x] **Honest by construction:** layout, tables, images and columns do not convert and the UI says so in those words. A scan with no text layer is reported, not silently converted to an empty file.
+
 ### 0.6 Page rendering + text editor ✅ DONE 2026-08-01 (added after Sejda comparison)
 - [x] **PDF.js added** (`src/lib/pdf/render.js`), lazy-loaded so the landing bundle stays ~78 kB gz. pdf-lib cannot rasterise, so nothing that shows the user their page was possible without it.
 - [x] **Reorder thumbnails** — real page previews replace the numbered boxes the original 0.4 spec asked for. Rendered progressively with a concurrency cap; rotation stays a CSS transform so it remains instant.

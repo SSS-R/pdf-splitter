@@ -296,3 +296,51 @@ TOOL_COPY['/edit'] = {
 };
 
 export const copyFor = (path) => TOOL_COPY[path] || null;
+
+TOOL_COPY['/pdf-to-docx'] = {
+  sections: [
+    {
+      heading: 'What actually comes across',
+      body: [
+        'You get the words, in reading order, grouped back into paragraphs, with headings marked as headings — an editable .docx you can open in Word, LibreOffice or Google Docs and start rewriting. Page breaks are preserved. Everything happens in your browser; the file is never uploaded.',
+        'Lines are rejoined into paragraphs on purpose. A line break in a PDF is a layout artefact — it marks where the text ran out of page, not where a sentence ended — so keeping them would give you a document that reflows into nonsense the moment you edit a word.',
+      ],
+    },
+    {
+      heading: 'Why layout does not convert, anywhere',
+      body: [
+        'This is worth understanding, because every converter has the same problem and most of them do not say so. A PDF does not contain a document. It contains instructions for putting glyphs at coordinates. There are no paragraphs in the file, no styles, no table cells, and no reading order — those are things a renderer infers by looking at where things landed.',
+        'So converting to Word means reconstructing structure by guesswork: characters sharing a baseline are probably a line, lines close together are probably a paragraph, text noticeably larger is probably a heading. That guessing is reliable for prose and unreliable for anything arranged in two dimensions. Tables arrive as loose lines, multi-column pages interleave their columns, and positioned images are dropped.',
+        'Paid desktop converters guess harder, with more heuristics and sometimes machine learning, and they still produce documents people have to clean up by hand. We would rather give you clean text you can rebuild around than a document that looks nearly right and is full of invisible junk.',
+      ],
+    },
+    {
+      heading: 'When it will not work at all',
+      body: [
+        'A scanned PDF has no text layer — it is a photograph of a page — so there is nothing to extract and the tool tells you so instead of handing you an empty file. Reading a scan requires OCR, which this does not do. If you cannot select text in your PDF reader, no converter can extract it without OCR either.',
+      ],
+    },
+  ],
+  faq: [
+    {
+      q: 'Will my formatting be preserved?',
+      a: 'Paragraphs, headings and page breaks are. Columns, tables, images, fonts and exact positioning are not. A PDF stores glyphs at coordinates rather than a document structure, so layout has to be inferred, and we would rather hand you clean text than a convincing-looking mess.',
+    },
+    {
+      q: 'Why did my tables come out as plain lines?',
+      a: 'Because a PDF has no table cells — a table is just text positioned in a grid, visually. Recovering cell boundaries means guessing from spacing, and getting it wrong produces a document that is harder to fix than plain text would have been.',
+    },
+    {
+      q: 'Nothing was extracted from my PDF. Why?',
+      a: 'It is almost certainly a scan: an image of a page with no text layer. Try selecting a sentence in your PDF reader — if nothing highlights, there is no text in the file to convert. Extracting it would need OCR, which this tool does not do.',
+    },
+    {
+      q: 'Is my document uploaded to convert it?',
+      a: 'No. The text is extracted and the Word file is assembled in your browser. Open your Network tab while converting: nothing is sent.',
+    },
+    {
+      q: 'Can it convert Word back to PDF?',
+      a: 'Not yet. That direction is genuinely easier, because a Word file does contain real structure, and it is on the list.',
+    },
+  ],
+};

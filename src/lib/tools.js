@@ -46,4 +46,12 @@ export const TOOLS = [
     blurb:
       'Click any line and retype it. The old text is covered and redrawn in a matched font — everything happens on your device, so the document is never uploaded.',
   },
+  {
+    path: '/pdf-to-docx',
+    name: 'PDF → Word',
+    icon: 'doc',
+    desc: 'Get the text out as an editable .docx.',
+    blurb:
+      'Pull the text, headings and paragraphs out of a PDF into an editable Word document. Layout and tables do not survive — the format cannot carry them.',
+  },
 ];

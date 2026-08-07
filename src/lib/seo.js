@@ -71,6 +71,13 @@ export const ROUTE_META = {
     changefreq: 'monthly',
     priority: '0.9',
   },
+  '/pdf-to-docx': {
+    title: 'PDF to Word Without Uploading — Free & Private | PDF Splitter',
+    description:
+      'Extract the text of a PDF into an editable Word document, entirely in your browser. No upload, no account. Honest about what converts: text, headings and paragraphs, not layout or tables.',
+    changefreq: 'monthly',
+    priority: '0.9',
+  },
   '/pricing': {
     title: 'Pricing — One Fair Price, Lifetime | PDF Splitter',
     description:
