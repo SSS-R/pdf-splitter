@@ -83,6 +83,29 @@ export default function Edit() {
   const imageInputRef = useRef(null);
   // Where the next picked image goes: an existing picture's box, or a point.
   const pendingPlacementRef = useRef(null);
+  const frameRef = useRef(null);
+
+  /**
+   * Render the page at the width actually available, capped at VIEW_WIDTH.
+   *
+   * It used to render at a hard 780px inside an overflow-x container, so any
+   * viewport narrower than that got a horizontal scrollbar and an editor you
+   * had to pan sideways to use -- unusable on a phone. Re-rendering at the
+   * measured width instead of scaling with a transform means `layout.scale` is
+   * still derived from the canvas, so every overlay coordinate and every drag
+   * keeps working with no extra conversion step.
+   */
+  const [viewWidth, setViewWidth] = useState(VIEW_WIDTH);
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(([entry]) => {
+      const available = Math.floor(entry.contentRect.width);
+      if (available > 0) setViewWidth(Math.min(VIEW_WIDTH, available));
+    });
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, [pdf.file]);
 
   /**
    * Focus the inline editor a frame after it mounts.
@@ -135,7 +158,7 @@ export default function Edit() {
       try {
         const { canvas, scale, pageWidth, pageHeight } = await docHandle.renderPageCanvas(
           pageIndex + 1,
-          { width: VIEW_WIDTH },
+          { width: viewWidth },
         );
         const { items } = await docHandle.textItems(pageIndex + 1);
         const pictures = await docHandle.imageItems(pageIndex + 1);
@@ -154,7 +177,7 @@ export default function Edit() {
     return () => {
       cancelled = true;
     };
-  }, [docHandle, pageIndex]);
+  }, [docHandle, pageIndex, viewWidth]);
 
   /** PDF space (bottom-left origin, baseline y) -> screen box (top-left). */
   const boxFor = useCallback(
@@ -271,9 +294,25 @@ export default function Edit() {
     });
   };
 
+  /**
+   * Refuse to commit text the fonts cannot draw.
+   *
+   * Previously an unwritable edit was accepted here and only rejected at save,
+   * which left the document permanently unsaveable: the message named the
+   * character but not which edit held it, so fixing the text you were looking
+   * at changed nothing and Save kept failing. Catching it at the point of entry
+   * means a bad edit never reaches the document at all.
+   */
+  const blockIfUnwritable = (value) => {
+    if (unsupportedChars(value).length === 0) return false;
+    requestAnimationFrame(() => inputRef.current?.focus());
+    return true;
+  };
+
   const commitEdit = () => {
     if (!editing) return;
     const { item, value, rect } = editing;
+    if (blockIfUnwritable(value)) return;
     setEditing(null);
     if (value === item.text) {
       setEdits((prev) => prev.filter((e) => e.id !== item.id));
@@ -408,6 +447,7 @@ export default function Edit() {
   const commitNew = () => {
     if (!editing?.isNew) return;
     const { item, value } = editing;
+    if (value.trim() && blockIfUnwritable(value)) return;
     setEditing(null);
     if (!value.trim()) return;
     setEdits((prev) => [
@@ -546,6 +586,37 @@ export default function Edit() {
         const height = Math.max(8, origin.height + dy);
         updateEdit(edit.id, { width, height, y: origin.y - (height - origin.height) });
       }
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+
+  /**
+   * Drag a piece of added text.
+   *
+   * Text you add was previously nailed to wherever you first clicked, while
+   * images could be moved freely -- the same gesture doing different things
+   * depending on what you had placed. `baselineY` rather than `y` because text
+   * is positioned from its baseline, and screen y runs the opposite way to PDF
+   * y, so moving down lowers the stored value.
+   */
+  const startTextDrag = (event, edit) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const { scale } = layout;
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const origin = { x: edit.x, baselineY: edit.baselineY };
+
+    const onMove = (moveEvent) => {
+      updateEdit(edit.id, {
+        x: origin.x + (moveEvent.clientX - startX) / scale,
+        baselineY: origin.baselineY - (moveEvent.clientY - startY) / scale,
+      });
     };
     const onUp = () => {
       window.removeEventListener('pointermove', onMove);
@@ -798,12 +869,14 @@ export default function Edit() {
             />
           </div>
 
-          <div style={{ padding: 20, overflowX: 'auto' }}>
+          {/* frameRef measures the space the page may use; no overflow-x, so a
+              narrow viewport shrinks the render instead of growing a scrollbar. */}
+          <div ref={frameRef} style={{ padding: 20 }}>
             <div
               onClick={addTextAt}
               style={{
                 position: 'relative',
-                width: VIEW_WIDTH,
+                width: viewWidth,
                 margin: '0 auto',
                 border: '1px solid var(--hairline)',
                 cursor: addMode ? 'crosshair' : 'default',
@@ -864,6 +937,52 @@ export default function Edit() {
                     </div>
                   );
                 })}
+
+              {/* Added text: draggable, and re-openable for editing. */}
+              {layout &&
+                !addMode &&
+                !imageMode &&
+                edits
+                  .filter((e) => e.type === 'add' && e.pageIndex === pageIndex && editing?.id !== e.id)
+                  .map((edit) => {
+                    const { scale, pageHeight } = layout;
+                    return (
+                      <div
+                        key={edit.id}
+                        data-text-add={edit.id}
+                        title="Drag to move · double-click to edit"
+                        onPointerDown={(e) => startTextDrag(e, edit)}
+                        onClick={(e) => e.stopPropagation()}
+                        onDoubleClick={(e) => {
+                          e.stopPropagation();
+                          setEditing({
+                            id: edit.id,
+                            item: edit,
+                            value: edit.text,
+                            box: {
+                              left: edit.x * scale,
+                              top: (pageHeight - edit.baselineY - edit.fontSize) * scale,
+                              width: Math.max(edit.width * scale, 120),
+                              height: edit.fontSize * 1.25 * scale,
+                            },
+                            isNew: true,
+                          });
+                          setEdits((prev) => prev.filter((e2) => e2.id !== edit.id));
+                        }}
+                        style={{
+                          position: 'absolute',
+                          left: edit.x * scale,
+                          top: (pageHeight - edit.baselineY - edit.fontSize) * scale,
+                          width: Math.max(edit.width * scale, 24),
+                          height: edit.fontSize * 1.3 * scale,
+                          border: '1px dashed rgba(230,46,46,0.55)',
+                          cursor: 'move',
+                          zIndex: 3,
+                          touchAction: 'none',
+                        }}
+                      />
+                    );
+                  })}
 
               {/* Placed images: draggable, resizable, removable. */}
               {layout &&
@@ -1078,7 +1197,9 @@ export default function Edit() {
 
             {badChars.length > 0 && (
               <p style={{ color: 'var(--accent-text)', fontSize: 13, fontWeight: 700, marginTop: 12, textAlign: 'center' }}>
-                “{badChars.join(' ')}” can’t be written — built-in fonts cover Latin characters only.
+                “{badChars.join(' ')}” can’t be written, so this edit can’t be saved yet. Built-in
+                fonts cover Latin characters and common punctuation. Remove it, or press Escape to
+                cancel this edit.
               </p>
             )}
           </div>
@@ -1105,7 +1226,24 @@ export default function Edit() {
               }}
               disabled={edits.length === 0}
             >
-              Discard edits
+              Discard all
+            </button>
+            {/* Undo one step. "Discard all" was the only way back, so a single
+                mistyped word meant redoing every other edit on the document. */}
+            <button
+              type="button"
+              className="btn btn--sm"
+              onClick={() => {
+                setEdits((prev) => {
+                  const last = prev[prev.length - 1];
+                  if (last?.url) URL.revokeObjectURL(last.url);
+                  return prev.slice(0, -1);
+                });
+                setSelectedImage(null);
+              }}
+              disabled={edits.length === 0}
+            >
+              Undo last
             </button>
             <span className="muted" style={{ fontSize: 12 }}>
               {rendering ? 'Rendering page…' : `${edits.length} edit${edits.length === 1 ? '' : 's'} ready`}

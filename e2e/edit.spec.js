@@ -286,17 +286,21 @@ test.describe('image detection', () => {
 
     // PDF has no list of images -- placement is recovered by replaying the
     // operator list and tracking the transform, so the numbers are worth
-    // asserting. The page is 420pt wide shown at 780px, i.e. 1.857x.
+    // asserting. The scale is derived from the rendered page rather than
+    // hardcoded: the editor now renders to whatever width is available, so a
+    // fixed pixel expectation would only be testing the viewport.
+    const scale = await page.evaluate(
+      () => document.querySelector('img[alt="Page 1"]').getBoundingClientRect().width / 420,
+    );
+
+    // The fixture draws 120x120 and 90x60 PDF units (see pdfWithImages).
     const first = await boxes.nth(0).boundingBox();
-    expect(first.width).toBeGreaterThan(215);
-    expect(first.width).toBeLessThan(231);
-    expect(Math.abs(first.width - first.height)).toBeLessThan(4);
+    expect(Math.abs(first.width - 120 * scale)).toBeLessThan(4);
+    expect(Math.abs(first.height - 120 * scale)).toBeLessThan(4);
 
     const second = await boxes.nth(1).boundingBox();
-    expect(second.width).toBeGreaterThan(160);
-    expect(second.width).toBeLessThan(175);
-    expect(second.height).toBeGreaterThan(104);
-    expect(second.height).toBeLessThan(119);
+    expect(Math.abs(second.width - 90 * scale)).toBeLessThan(4);
+    expect(Math.abs(second.height - 60 * scale)).toBeLessThan(4);
   });
 });
 
@@ -408,5 +412,106 @@ test.describe('student tier', () => {
     await page.getByRole('button', { name: 'Activate' }).click();
     await expect(page.getByText(/student access activated/i)).toBeVisible();
     await expect(page.locator('.tag-pro')).toHaveText('Student');
+  });
+});
+
+/**
+ * Regressions from real user testing. Each of these shipped broken.
+ */
+test.describe('editor bug fixes', () => {
+  test('accepts curly quotes, dashes and ellipsis — WinAnsi encodes them', async ({ page }) => {
+    await open(page);
+    await page.locator('input[type=file]').setInputFiles(await pdfUpload('notes.pdf', 1, 'Original'));
+    await expect(page.getByAltText('Page 1')).toBeVisible({ timeout: 20_000 });
+
+    await page.locator('[data-text-run]').first().click();
+    // The old check rejected anything above codepoint 255, which refused an
+    // apostrophe any word processor would have autocorrected.
+    await page.getByLabel('Edit text').fill('it’s “fine” — really…');
+    await expect(page.getByText(/can’t be written/i)).toHaveCount(0);
+    await page.getByLabel('Edit text').press('Enter');
+    await expect(page.getByText(/1 edit ready/)).toBeVisible();
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('button', { name: /save & download/i }).click(),
+    ]);
+    expect(await pageCountOf(download)).toBe(1);
+  });
+
+  test('an unwritable edit is refused at entry, and recovers', async ({ page }) => {
+    await open(page);
+    await page.locator('input[type=file]').setInputFiles(await pdfUpload('notes.pdf', 1, 'Original'));
+    await expect(page.getByAltText('Page 1')).toBeVisible({ timeout: 20_000 });
+
+    await page.locator('[data-text-run]').first().click();
+    await page.getByLabel('Edit text').fill('বাংলা');
+    await page.getByLabel('Edit text').press('Enter');
+
+    // Must not commit: previously it did, and the document then could never be
+    // saved because the failure named the character but not the edit holding it.
+    await expect(page.getByLabel('Edit text')).toBeVisible();
+    await expect(page.getByText(/0 edits ready/)).toBeVisible();
+
+    await page.getByLabel('Edit text').fill('Fixed');
+    await page.getByLabel('Edit text').press('Enter');
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('button', { name: /save & download/i }).click(),
+    ]);
+    expect(await pageCountOf(download)).toBe(1);
+  });
+
+  test('added text can be dragged, like an image', async ({ page }) => {
+    await open(page);
+    await page.locator('input[type=file]').setInputFiles(await pdfUpload('notes.pdf', 1));
+    await expect(page.getByAltText('Page 1')).toBeVisible({ timeout: 20_000 });
+
+    await page.getByRole('button', { name: /add text/i }).click();
+    await page.locator('img[alt="Page 1"]').click({ position: { x: 200, y: 300 } });
+    await page.getByLabel('Edit text').fill('Movable');
+    await page.getByLabel('Edit text').press('Enter');
+
+    const box = page.locator('[data-text-add]').first();
+    await expect(box).toBeVisible();
+    const before = await box.boundingBox();
+    await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(before.x + before.width / 2 + 70, before.y + before.height / 2 + 50, { steps: 6 });
+    await page.mouse.up();
+
+    const after = await box.boundingBox();
+    expect(Math.round(after.x - before.x)).toBeGreaterThan(60);
+    expect(Math.round(after.y - before.y)).toBeGreaterThan(40);
+  });
+
+  test('undo removes one edit, not all of them', async ({ page }) => {
+    await open(page);
+    await page.locator('input[type=file]').setInputFiles(await pdfUpload('notes.pdf', 1, 'Original'));
+    await expect(page.getByAltText('Page 1')).toBeVisible({ timeout: 20_000 });
+
+    await page.locator('[data-text-run]').first().click();
+    await page.getByLabel('Edit text').fill('Changed');
+    await page.getByLabel('Edit text').press('Enter');
+    await expect(page.getByText(/1 edit ready/)).toBeVisible();
+
+    await page.getByRole('button', { name: /undo last/i }).click();
+    await expect(page.getByText(/0 edits ready/)).toBeVisible();
+  });
+
+  test('the editor fits a phone instead of scrolling sideways', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await open(page);
+    await page.locator('input[type=file]').setInputFiles(await pdfUpload('notes.pdf', 1));
+    await expect(page.getByAltText('Page 1')).toBeVisible({ timeout: 20_000 });
+
+    const m = await page.evaluate(() => ({
+      scroll: document.documentElement.scrollWidth,
+      client: document.documentElement.clientWidth,
+      page: Math.round(document.querySelector('img[alt="Page 1"]').getBoundingClientRect().width),
+    }));
+    expect(m.scroll, 'editor forces horizontal scroll').toBeLessThanOrEqual(m.client);
+    // Rendered to fit, not clipped by an overflow container.
+    expect(m.page).toBeLessThanOrEqual(375);
   });
 });

@@ -30,6 +30,8 @@ export default function PixelIcon({ name, size = 5, color, title, matrix: raw })
     }
   }
 
+  const hasOriginPixel = matrix[0]?.[0] === '#';
+
   return (
     <span
       role={title ? 'img' : 'presentation'}
@@ -50,6 +52,7 @@ export default function PixelIcon({ name, size = 5, color, title, matrix: raw })
           left: 0,
           width: size,
           height: size,
+          backgroundColor: hasOriginPixel ? (color || 'currentColor') : 'transparent',
           boxShadow: shadows.join(','),
         }}
       />

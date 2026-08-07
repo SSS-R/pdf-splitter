@@ -18,7 +18,7 @@ export const BITMAPS = {
   // The fix is asymmetry. Offsetting the second page diagonally breaks the
   // mirror symmetry that made the last one read as a media control, and
   // overlapping rectangles are already understood as "documents".
-  logo:     ['####...', '#..#...', '#..####', '#..#..#', '####..#', '...#..#', '...####'],
+  logo:     ['.###...', '#..#...', '#..####', '#..#..#', '####..#', '...#..#', '...####'],
   scissors: ['#....#.', '.#..#..', '..##...', '..#....', '.#.#...', '#...#..', '.......'],
   merge:    ['#.....#', '.#...#.', '..#.#..', '...#...', '..#.#..', '.#...#.', '#.....#'],
   compress: ['..#.#..', '...#...', '..###..', '#.....#', '..###..', '...#...', '..#.#..'],

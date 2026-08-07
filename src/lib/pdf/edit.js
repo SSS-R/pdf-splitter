@@ -88,18 +88,32 @@ const pickStandardFont = (fontName = '') => {
 };
 
 /**
- * The standard fonts are WinAnsi-encoded, so they can only draw Latin-1.
- * Bengali, Arabic, CJK and even a stray smart quote will throw deep inside
- * pdf-lib with an unhelpful message. Detect it up front and say plainly what
- * cannot be typed, rather than failing at save time.
+ * Characters WinAnsi genuinely cannot encode.
+ *
+ * An earlier version treated "codepoint above 255" as unsupported, which was
+ * wrong and blocked ordinary typing: WinAnsi is CP1252, not Latin-1, and its
+ * 0x80-0x9F range holds exactly the punctuation people actually use --
+ * curly quotes, en and em dashes, the ellipsis, the bullet, the euro. Typing an
+ * apostrophe that any word processor had autocorrected to U+2019 produced a
+ * refusal for a character pdf-lib encodes without complaint.
+ *
+ * The set below is the CP1252 table, so this answers the same question the
+ * encoder does. Verified against pdf-lib character by character.
  */
+const CP1252_HIGH = new Set([
+  0x20ac, 0x201a, 0x0192, 0x201e, 0x2026, 0x2020, 0x2021, 0x02c6, 0x2030,
+  0x0160, 0x2039, 0x0152, 0x017d, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022,
+  0x2013, 0x2014, 0x02dc, 0x2122, 0x0161, 0x203a, 0x0153, 0x017e, 0x0178,
+]);
+
 export const unsupportedChars = (text) => {
   const bad = new Set();
   for (const char of text) {
     const code = char.codePointAt(0);
-    // Printable WinAnsi range, plus tab/newline.
-    if (code === 9 || code === 10 || code === 13) continue;
-    if (code >= 32 && code <= 255) continue;
+    if (code === 9 || code === 10 || code === 13) continue; // tab, newlines
+    if (code >= 0x20 && code <= 0x7e) continue; // ASCII printable
+    if (code >= 0xa0 && code <= 0xff) continue; // Latin-1 supplement
+    if (CP1252_HIGH.has(code)) continue; // the typographic set
     bad.add(char);
   }
   return [...bad];
@@ -119,9 +133,13 @@ export const applyEdits = async (arrayBuffer, edits) => {
     if (edit.type === 'image') continue;
     const bad = unsupportedChars(edit.text);
     if (bad.length) {
+      // Name the text, not just the character: with several edits pending, "can't
+      // write X" gave no clue which one to go and fix.
+      const snippet = edit.text.length > 32 ? `${edit.text.slice(0, 32)}…` : edit.text;
       throw new Error(
-        `Can’t write ${bad.map((c) => `"${c}"`).join(', ')} — the built-in fonts only cover Latin characters. ` +
-          `Editing text in other scripts needs the original font embedded, which isn’t possible here.`,
+        `Can’t write ${bad.map((c) => `"${c}"`).join(', ')} in “${snippet}” — the built-in fonts cover ` +
+          `Latin characters and common punctuation only. Other scripts need the original font embedded, ` +
+          `which isn’t possible here.`,
       );
     }
   }
